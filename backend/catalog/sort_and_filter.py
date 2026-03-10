@@ -4,30 +4,35 @@ con = sqlite3.connect("collection.db") #may need to change this name later
 
 cur = con.cursor()
 
+#DO WE WANT ANY OTHER SORT FEATURES?
+price_ascend = False
+price_descend = False
+
+newest_item = False
+oldest_item = False
+
+alpha_ascend = False
+alpha_descend = False
+
 #Step 2 - Go through database and find all items based on sort and filter parameters
 #SORT ONLY (no filter yet)
 #THIS IS PURE PYTHON RIGHT NOW, FIGURE OUT JS FRONT END CRAP LATER
 if (sort == True):
-    price = False
-    if (price == True): 
-        for row in cur.execute('SELECT * FROM price;'): # are we doing rows or columns?
-            #sort data here based on low --> high
-            #sort data here based on high --> low
-            print(row) 
+    if (price_ascend == True): 
+        for row in cur.execute('SELECT * FROM collection ORDER BY price DESC;'): 
+    else if (price_descend == True):
+        for row in cur.execute('SELECT * FROM collection ORDER BY price ASC')
+            print(row)
 
-    date_created = False
-    if (data_created == True):
-        for row in cur.execute('SELECT * FROM date;'): # are we doing rows or columns?
-            #sort data here based on recent --> oldest
-            #sort data here based on oldest --> recent
+    else if (newest_item == True):
+        for row in cur.execute('SELECT * FROM collection ORDER BY date DESC;'): 
             print(row) 
+    else if (oldest_item == True):
+        for row in cur.execute('SELECT * FROM collection ORDER BY date ASC'):
+            print(row)
     
-    alpha = False
-    if (alpha == True):
-        for row in cur.execute('SELECT * FROM name;'): # are we doing rows or columns?
-            #sort data here based on A --> Z
-            #sort data here based on Z --> A
+    else if (alpha_descend == True):
+        for row in cur.execute('SELECT * FROM collection ORDER BY name DESC;'): 
             print(row) 
-    
-#Step 3 - Display? 
-
+        for row in cur.execute('SELECT * FROM collection ORDER BY name ASC'):
+            print(row)
