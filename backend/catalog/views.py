@@ -8,7 +8,6 @@ def delete_item(request, item_id):
         item = Item.objects.get(id=item_id)
         item_name = item.name
         item.delete()        
-        
         return JsonResponse({"message": f"Item: '{item_name}' deleted successfully."})
     except Item.DoesNotExist:
         return JsonResponse({"error": "Item not found."}, status=404)

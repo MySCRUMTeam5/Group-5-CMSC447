@@ -16,8 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from . import views
+from django.urls import include
 
 urlpatterns = [
-    path("items/delete/<int:item_id>/", views.delete_item, name="delete_item"),
+    path("admin/", admin.site.urls),
+    path('api/', include("catalog.urls")),
 ]
