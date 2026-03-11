@@ -1,7 +1,10 @@
 from django.shortcuts import render
 
-@require_http_methods(["GET"])
+@require_http_methods(['"GET'])
 def sort_filter_collection(request):  
+    if request.method != 'GET':
+        return JsonResponse({"error": "Method not allowed", status = 405})
+    
     sort = request.GET.get("sort")
     
     filter_val = request.GET.get("filter")
