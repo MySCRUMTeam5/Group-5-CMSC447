@@ -21,11 +21,12 @@ def sort_filter_collection(request):
     }
 
     #Right now, doing filter by preset buttons, may move to user input later
+    #only doing one filter rn
     filter_dict = {
         "price_below" : ("price__lt", 10),
         "price_above" : ("price__gt", 10),
         "price_equal" : ("price", 10),
-        "name" : "name__contains"
+        "name" : ("name__contains", None)
     }
 
     con = sqlite3.connect("collection.db") #may need to change this name later
@@ -35,12 +36,12 @@ def sort_filter_collection(request):
     if sort:
         sort_by = sort_dict.get(sort)
         if sort_by:
-            data_sorted = Collection.objects.all().order_by(sort_by).values()
+            data_sorted = Item.objects.all().order_by(sort_by).values()
     
     elif filter_val:
         filter_by = filter_dict.get(filter_val)
         if filter_by:
-            data_filtered = Collection.objects.filter(filter_by).values()
+            data_filtered = Item.objects.filter(**{filter_by})
     
     elif not sort_by or not filter_by:
         return JsonResponse({"error": "this action could not be completed", status = 400})
