@@ -3,6 +3,12 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from .models import Item, Collection
+from rest_framework import viewsets
+from .models import User, Collection, Item, CollectionRating, DuplicateFlag
+from .serializers import (
+    UserSerializer, CollectionSerializer, ItemSerializer, 
+    CollectionRatingSerializer, DuplicateFlagSerializer
+)
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -58,3 +64,24 @@ def add_item(request):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+class CollectionViewSet(viewsets.ModelViewSet):
+    queryset = Collection.objects.all()
+    serializer_class = CollectionSerializer
+
+class ItemViewSet(viewsets.ModelViewSet):
+    queryset = Item.objects.all()
+    serializer_class = ItemSerializer
+
+class CollectionRatingViewSet(viewsets.ModelViewSet):
+    queryset = CollectionRating.objects.all()
+    serializer_class = CollectionRatingSerializer
+
+class DuplicateFlagViewSet(viewsets.ModelViewSet):
+    queryset = DuplicateFlag.objects.all()
+    serializer_class = DuplicateFlagSerializer
+
