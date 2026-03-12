@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -22,3 +23,30 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+=======
+# OS files
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Docker
+.docker/
+
+# Environment variables
+.env
+
+# Database
+db.sqlite3
+
+# Node
+node_modules/
+dist/
+>>>>>>> e6919c7c64203e97d453ce08e97e892f5ef5f9d4
