@@ -1,0 +1,25 @@
+# OS files
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Docker
+.docker/
+
+# Environment variables
+.env
+
+# Database
+db.sqlite3
+
+# Node
+node_modules/
+dist/
