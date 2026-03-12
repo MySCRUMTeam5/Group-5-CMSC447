@@ -2,11 +2,10 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from .models import Item, Collection
 from rest_framework import viewsets
 from .models import User, Collection, Item, CollectionRating, DuplicateFlag
 from .serializers import (
-    UserSerializer, CollectionSerializer, ItemSerializer, 
+    UserSerializer, CollectionSerializer, ItemSerializer,
     CollectionRatingSerializer, DuplicateFlagSerializer
 )
 
@@ -65,6 +64,17 @@ def add_item(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_item(request, collection_id, item_id):
+    try:
+        item = Item.objects.get(id=item_id, collection_id=collection_id)
+        item_name = item.name
+        item.delete()
+        return JsonResponse({"message": f"Item: '{item_name}' deleted successfully!"})
+    except Item.DoesNotExist:
+        return JsonResponse({"error": "Item not deleted. Item not found in this collection!"}, status=404)
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -84,4 +94,3 @@ class CollectionRatingViewSet(viewsets.ModelViewSet):
 class DuplicateFlagViewSet(viewsets.ModelViewSet):
     queryset = DuplicateFlag.objects.all()
     serializer_class = DuplicateFlagSerializer
-
