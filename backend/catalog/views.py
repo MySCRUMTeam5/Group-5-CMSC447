@@ -11,7 +11,7 @@ def sort_filter_collection(request):
 
     #DO WE WANT ANY OTHER SORT FEATURES?
     #Names may need to be changed based on how we store our data in the database
-    sort_values = {
+    sort_dict = {
         "p_price_ascend" : "purchase_price",
         "p_price_descend" : "-purchase_price",
         "alpha_ascend" : "alpha",
@@ -20,22 +20,27 @@ def sort_filter_collection(request):
         "date_descend" : "-purchase_date"
     }
 
-    filter_values = {
-        #add in filter values here
+    #Right now, doing filter by preset buttons, may move to user input later
+    filter_dict = {
+        "price_below" : ("price__lt", 10),
+        "price_above" : ("price__gt", 10),
+        "price_equal" : ("price", 10),
+        "name" : "name__contains"
     }
-
-    sort_by = sort_values.get(sort)
 
     con = sqlite3.connect("collection.db") #may need to change this name later
 
     cur = con.cursor()
 
-    if sort and sort_by:
-        data_sorted = Collection.objects.all().order_by(sort_by).values()
+    if sort:
+        sort_by = sort_dict.get(sort)
+        if sort_by:
+            data_sorted = Collection.objects.all().order_by(sort_by).values()
     
-    elif filter_val and filter_by:
-        #fill in parameter for filter function here
-        data_filtered = Collection.objects.filter().values()
+    elif filter_val:
+        filter_by = filter_dict.get(filter_val)
+        if filter_by:
+            data_filtered = Collection.objects.filter(filter_by).values()
     
     elif not sort_by or not filter_by:
         return JsonResponse({"error": "this action could not be completed", status = 400})
