@@ -2,12 +2,14 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.db.models import Sum
 from rest_framework import viewsets
 from .models import User, Collection, Item, CollectionRating, DuplicateFlag
 from .serializers import (
     UserSerializer, CollectionSerializer, ItemSerializer,
     CollectionRatingSerializer, DuplicateFlagSerializer
 )
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -20,6 +22,7 @@ def add_item(request):
             collection = Collection.objects.get(id=data["collection_id"])
         except Collection.DoesNotExist:
             return JsonResponse({"error": "Collection not found"}, status=404)
+
         item = Item.objects.create(
             collection=collection,
             name=data["name"],
@@ -37,6 +40,7 @@ def add_item(request):
             is_special_edition=data.get("is_special_edition", False),
             edition_details=data.get("edition_details", ""),
         )
+
         return JsonResponse({
             "message": "Item added successfully",
             "item": {
@@ -59,10 +63,12 @@ def add_item(request):
                 "created_at": item.created_at.isoformat(),
             }
         }, status=201)
+
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
@@ -73,73 +79,50 @@ def delete_item(request, collection_id, item_id):
         item.delete()
         return JsonResponse({"message": f"Item: '{item_name}' deleted successfully!"})
     except Item.DoesNotExist:
-        return JsonResponse({"error": "Item not deleted. Item not found in this collection!"}, status=404)
+        return JsonResponse(
+            {"error": "Item not deleted. Item not found in this collection!"},
+            status=404
+        )
 
-@require_http_methods(['"GET'])
-def sort_filter_collection(request):  
-    if request.method != 'GET':
-        return JsonResponse({"Error": "Method not allowed", status = 405})
-    
-    sort = request.GET.get("sort")
-    
-    filter_val = request.GET.get("filter")
 
-    #DO WE WANT ANY OTHER SORT FEATURES?
-    #Names may need to be changed based on how we store our data in the database
-    sort_dict = {
-        "p_price_ascend" : "purchase_price",
-        "p_price_descend" : "-purchase_price",
-        "alpha_ascend" : "alpha",
-        "alpha_descend" : "-alpha",
-        "date_ascend" : "purchase_date",
-        "date_descend" : "-purchase_date"
-    }
+@require_http_methods(["GET"])
+def get_collection_item_count(request, collection_id):
+    try:
+        collection = Collection.objects.get(id=collection_id)
 
-    #Right now, doing filter by preset buttons, may move to user input later
-    #only doing one filter rn
-    filter_dict = {
-        "price_below" : ("price__lt", 10),
-        "price_above" : ("price__gt", 10),
-        "price_equal" : ("price", 10),
-        "name" : ("name__contains", None)
-    }
+        total_items = collection.items.aggregate(
+            total=Sum("quantity")
+        )["total"] or 0
 
-    con = sqlite3.connect("collection.db") #may need to change this name later
+        return JsonResponse({
+            "collection_id": collection_id,
+            "collection_name": collection.name,
+            "total_items": total_items
+        })
 
-    cur = con.cursor()
+    except Collection.DoesNotExist:
+        return JsonResponse({"error": "Collection not found"}, status=404)
 
-    sort_by = sort_dict.get(sort)
-
-    filter_by = filter_dict.get(filter_val)
-
-    data = Item.objects.all()
-    
-    if sort and sort_by:
-        data = Item.objects.all().order_by(sort_by).values()
-    
-    if filter_val and filter_by:
-        data = Item.objects.filter(**{filter_by})
-    
-    if not sort_by or not filter_by:
-        return JsonResponse({"Error": "Not a valid sort/filter option", status = 404})
-    
-    return JsonResponse(list(data.values(), safe=False, status=200))
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.all()
     serializer_class = CollectionSerializer
+
 
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
 
+
 class CollectionRatingViewSet(viewsets.ModelViewSet):
     queryset = CollectionRating.objects.all()
     serializer_class = CollectionRatingSerializer
+
 
 class DuplicateFlagViewSet(viewsets.ModelViewSet):
     queryset = DuplicateFlag.objects.all()
