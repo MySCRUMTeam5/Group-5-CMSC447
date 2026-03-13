@@ -21,6 +21,6 @@ urlpatterns = [
 
     path("items/delete/<int:collection_id>/<int:item_id>/", views.delete_item, name="delete_item"),
 
-     path("items/", views.items_view, name="items")
+     path("items/", views.sort_filter_collection, name="sort_filter_collection")
 
 ]

@@ -78,7 +78,7 @@ def delete_item(request, collection_id, item_id):
 @require_http_methods(['"GET'])
 def sort_filter_collection(request):  
     if request.method != 'GET':
-        return JsonResponse({"Error": "Method not allowed", status = 405})
+        return JsonResponse({"Error": "Method not allowed"}, status = 405)
     
     sort = request.GET.get("sort")
     
@@ -121,7 +121,7 @@ def sort_filter_collection(request):
         data = Item.objects.filter(**{filter_by})
     
     if not sort_by or not filter_by:
-        return JsonResponse({"Error": "Not a valid sort/filter option", status = 404})
+        return JsonResponse({"Error": "Not a valid sort/filter option"}, status = 404)
     
     return JsonResponse(list(data.values(), safe=False, status=200))
 
