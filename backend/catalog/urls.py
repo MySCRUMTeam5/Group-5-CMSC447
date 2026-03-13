@@ -1,11 +1,10 @@
-from django.urls import path
-from . import views
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, CollectionViewSet, ItemViewSet,
     CollectionRatingViewSet, DuplicateFlagViewSet
 )
+from . import views
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
@@ -16,11 +15,11 @@ router.register(r'duplicates', DuplicateFlagViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-
     path("items/add/", views.add_item, name="add_item"),
-
     path("items/delete/<int:collection_id>/<int:item_id>/", views.delete_item, name="delete_item"),
-
-     path("items/", views.sort_filter_collection, name="sort_filter_collection")
-
+    path(
+        "collections/<int:collection_id>/item-count/",
+        views.get_collection_item_count,
+        name="get_collection_item_count",
+    ),
 ]
