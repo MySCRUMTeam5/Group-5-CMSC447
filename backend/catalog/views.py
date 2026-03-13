@@ -78,7 +78,7 @@ def delete_item(request, collection_id, item_id):
 @require_http_methods(['"GET'])
 def sort_filter_collection(request):  
     if request.method != 'GET':
-        return JsonResponse({"error": "Method not allowed", status = 405})
+        return JsonResponse({"Error": "Method not allowed", status = 405})
     
     sort = request.GET.get("sort")
     
@@ -108,18 +108,22 @@ def sort_filter_collection(request):
 
     cur = con.cursor()
 
-    if sort:
-        sort_by = sort_dict.get(sort)
-        if sort_by:
-            data_sorted = Item.objects.all().order_by(sort_by).values()
+    sort_by = sort_dict.get(sort)
+
+    filter_by = filter_dict.get(filter_val)
+
+    data = Item.objects.all()
     
-    elif filter_val:
-        filter_by = filter_dict.get(filter_val)
-        if filter_by:
-            data_filtered = Item.objects.filter(**{filter_by})
+    if sort and sort_by:
+        data = Item.objects.all().order_by(sort_by).values()
     
-    elif not sort_by or not filter_by:
-        #FIXED
+    if filter_val and filter_by:
+        data = Item.objects.filter(**{filter_by})
+    
+    if not sort_by or not filter_by:
+        return JsonResponse({"Error": "Not a valid sort/filter option", status = 404})
+    
+    return JsonResponse(list(data.values(), safe=False, status=200))
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
