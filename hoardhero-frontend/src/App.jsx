@@ -1,53 +1,24 @@
-import { useState, useEffect } from 'react'
-import './App.css'
+import { useState } from 'react'
+import HomePage from './pages/HomePage'
+import CollectionPage from './pages/CollectionPage'
 
 function App() {
-  const [collections, setCollections] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState('home')
+  const [selectedCollection, setSelectedCollection] = useState(null)
 
-  // This is the "Telephone Call" to the Backend
-  useEffect(() => {
-    fetch('http://localhost:8001/api/collections/')
-      .then(response => response.json())
-      .then(data => {
-        setCollections(data)
-        setLoading(false)
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error)
-        setLoading(false)
-      })
-  }, [])
+  const navigate = (page, data = null) => {
+    setCurrentPage(page)
+    if (data) setSelectedCollection(data)
+  }
 
   return (
-    <div className="App">
-      <h1>Hoard Hero Collections</h1>
-
-      {loading ? (
-        <p>Loading your treasures...</p>
-      ) : (
-        <div className="collection-list">
-          {collections.length === 0 ? (
-            <p>No collections found. Go to the Backend window to add one!</p>
-          ) : (
-            <ul>
-              {collections.map(collection => (
-                <li key={collection.id}>
-                  <strong>{collection.name}</strong> - {collection.category}
-                  <br />
-                  <small>Owned by: {collection.owner}</small>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+    <div className="app">
+      {currentPage === 'home' && (
+        <HomePage navigate={navigate} />
       )}
-
-      <p>
-        <a href="http://localhost:8001/api/collections/" target="_blank" rel="noreferrer">
-          Go to Backend Service Window
-        </a>
-      </p>
+      {currentPage === 'collection' && (
+        <CollectionPage navigate={navigate} collection={selectedCollection} />
+      )}
     </div>
   )
 }
