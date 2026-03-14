@@ -350,8 +350,4 @@ export default function CollectionPage({ navigate, collection }) {
       )}
     </div>
   )
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 76920f6cd3390dce619cce8e54a1e6bdcdb2cf90
