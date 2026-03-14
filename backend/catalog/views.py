@@ -77,7 +77,10 @@ def delete_item(request, collection_id, item_id):
         item = Item.objects.get(id=item_id, collection_id=collection_id)
         item_name = item.name
         item.delete()
-        return JsonResponse({"message": f"Item: '{item_name}' deleted successfully!"})
+        return JsonResponse(
+            {"message": f"Item: '{item_name}' deleted successfully!"},
+            status=200
+        )
     except Item.DoesNotExist:
         return JsonResponse(
             {"error": "Item not deleted. Item not found in this collection!"},
