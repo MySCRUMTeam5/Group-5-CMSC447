@@ -1,6 +1,6 @@
 from django.test import TestCase, RequestFactory,Client
 from django.contrib.auth import get_user_model
-from .models import Collection, Item
+from .models import User, Collection, Item
 from .views import sort_filter_collection
 from datetime import date
 import json
@@ -337,4 +337,62 @@ class DeleteTests(TestCase):
         response = self.client.delete(url)
 
         #this should return error code 404, failed to delete item that does not exsist
-        self.assertEqual(response.status_code, 404)        
+        self.assertEqual(response.status_code, 404)  
+
+
+
+class AddItemTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="testuser", password="test123")
+        self.collection = Collection.objects.create(owner=self.user, name="Pokemon Cards")
+
+    def test_cant_add_empty_item(self):
+        response = self.client.post("/api/items/add/",
+            data=json.dumps({}),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_cant_add_without_collection_id(self):
+        response = self.client.post("/api/items/add/",
+            data=json.dumps({
+                "name": "Charizard"
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_cant_add_without_name(self):
+        response = self.client.post("/api/items/add/",
+            data=json.dumps({
+                "collection_id": self.collection.id
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_cant_add_without_collection_id_and_name(self):
+        response = self.client.post("/api/items/add/",
+            data=json.dumps({
+                "category": "cards"
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_add_item_success(self):
+    	response = self.client.post("/api/items/add/",
+            data=json.dumps({
+                "collection_id": self.collection.id,
+                "name": "Charizard",
+                "category": "Pokemon Cards",
+                "condition": "mint",
+                "purchase_price": 350.00
+            }),
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Item.objects.count(), 1)
+        self.assertEqual(Item.objects.first().name, "Charizard")
