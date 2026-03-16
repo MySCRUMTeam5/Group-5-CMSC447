@@ -8,8 +8,6 @@ import json
 #Things to Test:
     #Sorting an empty list newest to oldest and oldest to newest
     #Sorting an empty collection newest to oldest and oldest to newest
-    #Sorting the list by most $$ to least $$ (normal case)
-    #Sorting the list by least $$ to most $$ (normal case)
     #Sorting an empty list least $$ to most $$ and most $$ to least $$
     #Sorting an empty collection least $$ to most $$ and most $$ to least $$
 
@@ -68,8 +66,51 @@ class TestSortEmptyColl(TestCase):
 
         self.assertEqual(actual_order, expected_order)
 
-
 ## ------------------------------------ PASSED TESTS ------------------------------------##
+class TestSortPriceNormal(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        
+        User = get_user_model()
+        
+        self.user = User.objects.create_user(username="testuser", password="testpass123")
+        
+        self.collection = Collection.objects.create(name="Pokemon", owner=self.user)
+        
+        Item.objects.create(collection=self.collection, name="Fire Red", purchase_price=19.99)
+        Item.objects.create(collection=self.collection, name="Silver", purchase_price=9.99)
+        Item.objects.create(collection=self.collection, name="Crystal", purchase_price=30)
+        Item.objects.create(collection=self.collection, name="Gold", purchase_price=45.87)
+        Item.objects.create(collection=self.collection, name="Leaf Green", purchase_price=72.89)
+
+    def test_sort_price_ascend(self):
+        #Sorting the list by least $$ to most $$ (normal case)
+        request = self.factory.get("/items/?sort=p_price_ascend")
+
+        response = sort_filter_collection(request)
+        
+        data = json.loads(response.content)
+           
+        expected_order = ["Silver", "Fire Red", "Crystal", "Gold", "Leaf Green"]
+
+        actual_order = [item["name"] for item in data]
+
+        self.assertEqual(actual_order, expected_order)
+
+    def test_sort_price_descend(self):
+        #Sorting the list by most $$ to least $$ (normal case)
+        request = self.factory.get("/items/?sort=p_price_descend")
+
+        response = sort_filter_collection(request)
+        
+        data = json.loads(response.content)
+          
+        expected_order = ["Leaf Green", "Gold", "Crystal", "Fire Red", "Silver"]
+
+        actual_order = [item["name"] for item in data]
+
+        self.assertEqual(actual_order, expected_order)
+        
 class TestSortAlphaNormal(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
