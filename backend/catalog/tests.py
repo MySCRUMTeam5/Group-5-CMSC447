@@ -11,27 +11,6 @@ import json
     #Sorting an empty list least $$ to most $$ and most $$ to least $$
     #Sorting an empty collection least $$ to most $$ and most $$ to least $$
 
-
-class TestNoColl(TestCase):
-    def setUp(self):
-        self.factory = RequestFactory()
-
-    def test_sort_a_z_no_coll(self):
-        #Sorting a collection that doesn't exist
-        request = self.factory.get("/items/?sort=alpha_ascend")
-
-        response = sort_filter_collection(request)
-
-        self.assertEqual(response.status_code, 200)
-    
-    def test_sort_z_a_no_coll(self):
-        #Sorting a collection that doesn't exist
-        request = self.factory.get("/items/?sort=alpha_descend")
-
-        response = sort_filter_collection(request)
-
-        self.assertEqual(response.status_code, 200)
-
 class TestSortEmptyColl(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
@@ -67,6 +46,58 @@ class TestSortEmptyColl(TestCase):
         self.assertEqual(actual_order, expected_order)
 
 ## ------------------------------------ PASSED TESTS ------------------------------------##
+class TestNoColl(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def test_sort_a_z_no_coll(self):
+        #Sorting a collection A-Z that doesn't exist
+        request = self.factory.get("/items/?sort=alpha_ascend")
+
+        response = sort_filter_collection(request)
+
+        self.assertEqual(response.status_code, 200)
+    
+    def test_sort_z_a_no_coll(self):
+        #Sorting a collection Z-A that doesn't exist
+        request = self.factory.get("/items/?sort=alpha_descend")
+
+        response = sort_filter_collection(request)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_sort_date_ascend_no_coll(self):
+        #Sorting a collection oldest to newest that doesn't exist
+        request = self.factory.get("/items/?sort=date_ascend")
+
+        response = sort_filter_collection(request)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_sort_date_descend_no_coll(self):
+        #Sorting a collection newest to oldest that doesn't exist
+        request = self.factory.get("/items/?sort=date_descend")
+
+        response = sort_filter_collection(request)
+
+        self.assertEqual(response.status_code, 200)
+    
+    def test_sort_price_ascend_no_coll(self):
+        #Sorting a collection lesat $$ to most $$ that doesn't exist
+        request = self.factory.get("/items/?sort=p_price_ascend")
+
+        response = sort_filter_collection(request)
+
+        self.assertEqual(response.status_code, 200)
+    
+    def test_sort_date_descend_no_coll(self):
+        #Sorting a collection most $$ to least $$ that doesn't exist
+        request = self.factory.get("/items/?sort=p_price_descend")
+
+        response = sort_filter_collection(request)
+
+        self.assertEqual(response.status_code, 200)
+        
 class TestSortPriceNormal(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
@@ -110,7 +141,7 @@ class TestSortPriceNormal(TestCase):
         actual_order = [item["name"] for item in data]
 
         self.assertEqual(actual_order, expected_order)
-        
+
 class TestSortAlphaNormal(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
