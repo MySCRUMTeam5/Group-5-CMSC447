@@ -106,6 +106,49 @@ def get_collection_item_count(request, collection_id):
     except Collection.DoesNotExist:
         return JsonResponse({"error": "Collection not found"}, status=404)
 
+@require_http_methods(['GET'])
+def sort_filter_collection(request):
+    if request.method != 'GET':
+        return JsonResponse({"Error": "Method not allowed"}, status = 405)
+    
+    sort = request.GET.get("sort")
+    
+    filter_val = request.GET.get("filter")
+
+    sort_dict = {
+        "p_price_ascend" : "purchase_price",
+        "p_price_descend" : "-purchase_price",
+        "alpha_ascend" : "name",
+        "alpha_descend" : "-name",
+        "date_ascend" : "purchase_date",
+        "date_descend" : "-purchase_date"
+    }
+
+    #Right now, doing filter by preset buttons, may move to user input later
+    #only doing one filter rn
+    filter_dict = {
+        "price_below" : ("price__lt", 10),
+        "price_above" : ("price__gt", 10),
+        "price_equal" : ("price", 10),
+        "name" : ("name__contains", None)
+    }
+
+    data = Item.objects.all()
+    
+    if sort:
+        sort_by = sort_dict.get(sort)
+        if not sort_by:
+            return JsonResponse({"Error" : "Not a valid sort option"}, status=404)
+        data = data.order_by(sort_by)
+    
+    if filter_val:
+        filter_by = filter_dict.get(filter_val)
+        if not filter_by:
+            return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
+        data = Item.objects.filter(**{filter_by})
+    
+    return JsonResponse(list(data.values()), safe=False, status=200)
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

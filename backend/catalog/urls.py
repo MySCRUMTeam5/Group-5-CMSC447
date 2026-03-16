@@ -22,4 +22,5 @@ urlpatterns = [
         views.get_collection_item_count,
         name="get_collection_item_count",
     ),
+    path("items/", views.sort_filter_collection, name="sort_filter_collection")
 ]
