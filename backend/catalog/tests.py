@@ -7,6 +7,64 @@ import json
 
 User = get_user_model()
 
+class TestFilterNormal(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="testuser", password="testpass123")
+        self.collection = Collection.objects.create(name="Pokemon", owner=self.user)
+
+        Item.objects.create(collection=self.collection, name="Fire Red", usage_status=Item.UsageStatus.STORED)
+        Item.objects.create(collection=self.collection, name="Silver", usage_status=Item.UsageStatus.IN_USE)
+        Item.objects.create(collection=self.collection, name="Crystal", usage_status=Item.UsageStatus.NOT_USED)
+        Item.objects.create(collection=self.collection, name="Gold", usage_status=Item.UsageStatus.STORED)
+        Item.objects.create(collection=self.collection, name="Leaf Green", usage_status=Item.UsageStatus.IN_USE)
+        Item.objects.create(collection=self.collection, name="Yellow", usage_status=Item.UsageStatus.NOT_USED)
+    
+    def test_filter_red(self):
+        request = self.factory.get("/items/?filter=name&value=red")
+        response = sort_filter_collection(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "Fire Red")
+
+    def test_filter_e(self):
+        request = self.factory.get("/items/?filter=name&value=e")
+        response = sort_filter_collection(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data), 4)
+        self.assertEqual(data[0]["name"], "Yellow")
+        self.assertEqual(data[1]["name"], "Leaf Green")
+        self.assertEqual(data[2]["name"], "Silver")
+        self.assertEqual(data[3]["name"], "Fire Red")
+
+    def test_filter_stored(self):
+        request = self.factory.get("items/?filter=played")
+        response = sort_filter_collection(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["name"], "Gold")
+        self.assertEqual(data[1]["name"], "Fire Red")
+
+    def test_filter_in_use(self):
+        request = self.factory.get("items/?filter=curr_playing")
+        response = sort_filter_collection(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["name"], "Leaf Green")
+        self.assertEqual(data[1]["name"], "Silver")
+    
+    def test_filter_not_used(self):
+        request = self.factory.get("items/?filter=unplayed")
+        response = sort_filter_collection(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["name"], "Yellow")
+        self.assertEqual(data[1]["name"], "Crystal")
 
 class TestSortEmptyColl(TestCase):
     def setUp(self):

@@ -127,10 +127,10 @@ def sort_filter_collection(request):
     #Right now, doing filter by preset buttons, may move to user input later
     #only doing one filter rn
     filter_dict = {
-        "price_below" : ("price__lt", 10),
-        "price_above" : ("price__gt", 10),
-        "price_equal" : ("price", 10),
-        "name" : ("name__contains", None)
+        "played" : ("usage_status", Item.UsageStatus.STORED),
+        "curr_playing" : ("usage_status", Item.UsageStatus.IN_USE),
+        "unplayed" : ("usage_status", Item.UsageStatus.NOT_USED),
+        "name" : ("name__icontains", request.GET.get("value"))
     }
 
     data = Item.objects.all()
@@ -145,7 +145,8 @@ def sort_filter_collection(request):
         filter_by = filter_dict.get(filter_val)
         if not filter_by:
             return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
-        data = Item.objects.filter(**{filter_by})
+        lookup, value = filter_by
+        data = Item.objects.filter(**{lookup: value})
     
     return JsonResponse(list(data.values()), safe=False, status=200)
 
