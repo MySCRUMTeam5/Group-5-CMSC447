@@ -12,10 +12,22 @@ class User(AbstractUser):
 
 
 class Collection(models.Model):
+    COLLECTION_TYPES = [
+        ("video_games", "Video Games"),
+        ("trading_cards", "Trading Cards"),
+        ("comics", "Comics"),
+        ("funko_pops", "Funko Pops"),
+        ("lego_sets", "LEGO Sets"),
+        ("sports_cards", "Sports Cards"),
+        ("music", "Music"),
+        ("movies", "Movies"),
+    ]
+
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="collections")
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     category = models.CharField(max_length=100, blank=True, default="")
+    collection_type = models.CharField(max_length=50, choices=COLLECTION_TYPES, default="video_games")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_public = models.BooleanField(default=False)
@@ -48,6 +60,7 @@ class CollectionRating(models.Model):
         unique_together = ["collection", "user"]
 
 
+# Base Item Model (shared fields: condition, price, value are here)
 class Item(models.Model):
     class Condition(models.TextChoices):
         MINT = "mint", "Mint"
@@ -92,6 +105,105 @@ class Item(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.collection.name})"
+
+
+# Video Games
+class VideoGameItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="video_game")
+    platform = models.CharField(max_length=100, blank=True, default="")
+    genre = models.CharField(max_length=100, blank=True, default="")
+    completeness = models.CharField(max_length=100, blank=True, default="")
+    play_status = models.CharField(max_length=50, blank=True, default="")
+
+    def __str__(self):
+        return f"Game: {self.item.name}"
+
+
+# Trading Cards
+class TradingCardItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="trading_card")
+    series = models.CharField(max_length=255, blank=True, default="")
+    set_name = models.CharField(max_length=255, blank=True, default="")
+    card_number = models.CharField(max_length=50, blank=True, default="")
+    grade = models.CharField(max_length=50, blank=True, default="")
+
+    def __str__(self):
+        return f"Card: {self.item.name}"
+
+
+# Comics
+class ComicItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="comic")
+    publisher = models.CharField(max_length=255, blank=True, default="")
+    issue_title = models.CharField(max_length=255, blank=True, default="")
+    issue_number = models.CharField(max_length=20, blank=True, default="")
+    grade = models.CharField(max_length=50, blank=True, default="")
+    read_status = models.CharField(max_length=50, blank=True, default="")
+
+    def __str__(self):
+        return f"Comic: {self.item.name}"
+
+
+# Funko Pops
+class FunkoPopItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="funko_pop")
+    series = models.CharField(max_length=255, blank=True, default="")
+    box_number = models.CharField(max_length=50, blank=True, default="")
+    completeness = models.CharField(max_length=100, blank=True, default="")
+    exclusive = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Funko: {self.item.name}"
+
+
+# LEGO Sets
+class LegoSetItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="lego_set")
+    series = models.CharField(max_length=255, blank=True, default="")
+    set_number = models.CharField(max_length=50, blank=True, default="")
+    completeness = models.CharField(max_length=100, blank=True, default="")
+    piece_count = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return f"LEGO: {self.item.name}"
+
+
+# Sports Cards
+class SportsCardItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="sports_card")
+    sport = models.CharField(max_length=100, blank=True, default="")
+    player_name = models.CharField(max_length=255, blank=True, default="")
+    card_number = models.CharField(max_length=50, blank=True, default="")
+    year = models.IntegerField(blank=True, null=True)
+    grade = models.CharField(max_length=50, blank=True, default="")
+
+    def __str__(self):
+        return f"Sports Card: {self.item.name}"
+
+
+# Music
+class MusicItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="music")
+    artist = models.CharField(max_length=255, blank=True, default="")
+    album_title = models.CharField(max_length=255, blank=True, default="")
+    format = models.CharField(max_length=50, blank=True, default="")
+    genre = models.CharField(max_length=100, blank=True, default="")
+
+    def __str__(self):
+        return f"Music: {self.item.name}"
+
+
+# Movies
+class MovieItem(models.Model):
+    item = models.OneToOneField(Item, on_delete=models.CASCADE, related_name="movie")
+    title = models.CharField(max_length=255, blank=True, default="")
+    format = models.CharField(max_length=50, blank=True, default="")
+    genre = models.CharField(max_length=100, blank=True, default="")
+    director = models.CharField(max_length=255, blank=True, default="")
+    watched_status = models.CharField(max_length=50, blank=True, default="")
+
+    def __str__(self):
+        return f"Movie: {self.item.name}"
 
 
 class DuplicateFlag(models.Model):
