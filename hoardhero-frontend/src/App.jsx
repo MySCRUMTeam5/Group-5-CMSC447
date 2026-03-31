@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import HomePage from './pages/HomePage'
 import CollectionPage from './pages/CollectionPage'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -8,7 +9,9 @@ function App() {
 
   const navigate = (page, data = null) => {
     setCurrentPage(page)
-    if (data) setSelectedCollection(data)
+    if (data) {
+      setSelectedCollection(data)
+    }
   }
 
   return (
@@ -16,8 +19,13 @@ function App() {
       {currentPage === 'home' && (
         <HomePage navigate={navigate} />
       )}
+
       {currentPage === 'collection' && (
         <CollectionPage navigate={navigate} collection={selectedCollection} />
+      )}
+
+      {currentPage === 'profile' && (
+        <ProfilePage navigate={navigate} />
       )}
     </div>
   )
