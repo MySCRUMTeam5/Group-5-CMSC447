@@ -1,30 +1,24 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
+import { COLLECTION_TYPES } from '../config/collectionConfig'
 import './HomePage.css'
 
+// TODO: Replace with GET /api/collections/
 const MOCK_COLLECTIONS = []
-
-const COLLECTION_TYPES = [
-  { value: 'games',  label: 'Video Games',    icon: '🎮' },
-  { value: 'comics', label: 'Comic Books',    icon: '📚' },
-  { value: 'music',  label: 'Music / Vinyl',  icon: '🎵' },
-  { value: 'funko',  label: 'Funko Pops',     icon: '🧸' },
-  { value: 'movies', label: 'Movies',         icon: '🎬' },
-  { value: 'cards',  label: 'Trading Cards',  icon: '🃏' },
-]
 
 export default function HomePage({ navigate }) {
   const [collections, setCollections] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
-  const [newCol, setNewCol] = useState({ name: '', type: 'games' })
-  const [loaded, setLoaded] = useState(false)
+  const [newCol, setNewCol]             = useState({ name: '', type: 'games' })
+  const [loaded, setLoaded]             = useState(false)
 
   useEffect(() => {
+    // TODO: fetch('/api/collections/').then(r => r.json()).then(setCollections)
     setTimeout(() => setLoaded(true), 80)
   }, [])
 
-  const totalItems = collections.reduce((s, c) => s + c.itemCount, 0)
-  const totalValue = collections.reduce((s, c) => s + c.totalValue, 0)
+  const totalItems = collections.reduce((s, c) => s + (c.itemCount || 0), 0)
+  const totalValue = collections.reduce((s, c) => s + (c.totalValue || 0), 0)
 
   const handleAddCollection = () => {
     if (!newCol.name.trim()) return
@@ -37,7 +31,7 @@ export default function HomePage({ navigate }) {
       totalValue: 0,
       icon: type?.icon || '📦',
     }
-    // TODO: POST
+    // TODO: POST /api/collections/  { name, type }
     setCollections(prev => [...prev, created])
     setNewCol({ name: '', type: 'games' })
     setShowAddModal(false)
@@ -109,7 +103,7 @@ export default function HomePage({ navigate }) {
                     {col.itemCount} items
                   </span>
                   <span className="meta-item meta-value">
-                    ${col.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    ${(col.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="collection-footer">
@@ -118,7 +112,7 @@ export default function HomePage({ navigate }) {
               </div>
             ))}
 
-            {/* Empty state / add prompt */}
+            {/* Add card */}
             <div className="collection-card collection-card-add" onClick={() => setShowAddModal(true)}>
               <div className="add-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -144,7 +138,7 @@ export default function HomePage({ navigate }) {
               <label className="form-label">Collection Name</label>
               <input
                 type="text"
-                placeholder="e.g. My Vinyl Records"
+                placeholder='e.g. "My Vinyl Records"'
                 value={newCol.name}
                 onChange={e => setNewCol(p => ({ ...p, name: e.target.value }))}
                 onKeyDown={e => e.key === 'Enter' && handleAddCollection()}
