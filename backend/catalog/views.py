@@ -111,26 +111,68 @@ def sort_filter_collection(request):
     if request.method != 'GET':
         return JsonResponse({"Error": "Method not allowed"}, status = 405)
     
-    sort = request.GET.get("sort")
+    sort = request.GET.get("sort") #gets what value to sort by
     
-    filter_val = request.GET.get("filter")
+    filter_val = request.GET.get("filter") #gets what value to filter by
 
-    sort_dict = {
-        "p_price_ascend" : "purchase_price",
-        "p_price_descend" : "-purchase_price",
-        "alpha_ascend" : "name",
-        "alpha_descend" : "-name",
-        "date_ascend" : "purchase_date",
-        "date_descend" : "-purchase_date"
+    item_type = request.GET.get("type") #gets the item type that we are filtering/sorting by
+
+    #sets up different dictionaries based on what item collection we are filtering
+    VIDEO_GAMES_FILTER_FIELDS = {
+        "playStatus" : "play_status__iexact",
+        "platform" : "platform__iexact",
+        "genre" : "genre__iexact",
+        "completeness" : "completeness,__iexact",
+        }
+
+    TRADING_CARDS_FILTER_FIELDS = {
+        "series" : "series__iexact",
+        "grade" : "grade__iexact"
+        }
+
+    COMICS_FILTER_FIELDS = {
+        "publisher" : "publisher__iexact",
+        "readStatus" : "read_status__iexact".
+        "grade" : "grade__iexact"
+        "readStatus" : "read_status__iexact"
+        }
+
+    FUNKO_FILTER_FIELDS = {
+        "series" : "series__iexact",
+        "completeness" : "completeness__iexact",
+        "exclusive" : "exclusive__iexact"
+        }
+    
+    LEGO_FILTER_FIELDS = {
+        "series" : "series__iexact",
+        "completeness" : "completness__iexact"
+        }
+
+    SPORTS_CARDS_FILTER_FIELDS = {
+        "sport" : "sport__iexact",
+        "grade" : "grade__iexact"
     }
 
-    #Right now, doing filter by preset buttons, may move to user input later
-    #only doing one filter rn
-    filter_dict = {
-        "played" : ("usage_status", Item.UsageStatus.STORED),
-        "curr_playing" : ("usage_status", Item.UsageStatus.IN_USE),
-        "unplayed" : ("usage_status", Item.UsageStatus.NOT_USED),
-        "name" : ("name__icontains", request.GET.get("value"))
+    MUSIC_FILTER_FIELDS = {
+        "format" : "format__iexact",
+        "genre" : "genre__iexact"
+    }
+
+    MOVIES_FILTER_FIELDS = {
+        "watchedStatus" : "watched_status__iexact",
+        "format" : "format__iexact",
+        "genre" : "genre__iexact"
+    }
+
+    ITEM_TYPES = {
+        "games" : VIDEO_GAMES_FILTER_FIELDS,
+        "trading_cards" : TRADING_CARDS_FILTER_FIELDS,
+        "comics" : COMICS_FILTER_FIELDS,
+        "funko" : FUNKO_FILTER_FIELDS,
+        "lego" : LEGO_FILTER_FIELDS,
+        "sports_cards" : SPORTS_CARDS_FILTER_FIELDS,
+        "music" : MUSIC_FILTER_FIELDS,
+        "movies" : MOVIES_FILTER_FIELDS
     }
 
     data = Item.objects.all()
@@ -142,11 +184,14 @@ def sort_filter_collection(request):
         data = data.order_by(sort_by)
     
     if filter_val:
-        filter_by = filter_dict.get(filter_val)
+        filter_type = ITEM_TYPES.get(item_type) #gets the correct item from ITEM_TYPES dict
+
+        filter_by = filter_type.get(filter_val) #gets the correct key val pair from specified dict
+        #based on type specified from filter_type
+
         if not filter_by:
             return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
-        lookup, value = filter_by
-        data = Item.objects.filter(**{lookup: value})
+        data = Item.objects.filter(**{filter_by : value})
     
     return JsonResponse(list(data.values()), safe=False, status=200)
 
