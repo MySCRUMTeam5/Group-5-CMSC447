@@ -10,6 +10,30 @@ from .serializers import (
     CollectionRatingSerializer, DuplicateFlagSerializer
 )
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def add_collection(request):
+    data = json.loads(request.body)
+
+    if "name" not in data:
+        return JsonResponse({"Error" : "Collection must have a name"}, status=400)
+
+    collection = Collection.objects.create(
+        owner=request.user,
+        name=data["name"],
+        description=data.get("description",""),
+        category=data.get("category", ""),
+        collection_type=data.get("type", "video_games"),
+        is_public=data.get("is_public", False)
+        shared_with=data.get(request.user)
+    )
+
+    return JsonResponse({
+        "id" : collection.id,
+        "name" : collection.name,
+        ""
+    })
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -132,8 +156,8 @@ def sort_filter_collection(request):
 
     COMICS_FILTER_FIELDS = {
         "publisher" : "publisher__iexact",
-        "readStatus" : "read_status__iexact".
-        "grade" : "grade__iexact"
+        "readStatus" : "read_status__iexact",
+        "grade" : "grade__iexact",
         "readStatus" : "read_status__iexact"
         }
 
@@ -164,7 +188,7 @@ def sort_filter_collection(request):
         "genre" : "genre__iexact"
     }
 
-    ITEM_TYPES = {
+    FILTER_ITEM_TYPES = {
         "games" : VIDEO_GAMES_FILTER_FIELDS,
         "trading_cards" : TRADING_CARDS_FILTER_FIELDS,
         "comics" : COMICS_FILTER_FIELDS,
@@ -175,16 +199,25 @@ def sort_filter_collection(request):
         "movies" : MOVIES_FILTER_FIELDS
     }
 
+    SORT_ITEMS = {
+        "p_price_ascend" : "purchase_price",
+        "p_price_descend" : "-purchase_price",
+        "alpha_ascend" : "name",
+        "alpha_descend" : "-name",
+        "date_ascend" : "purchase_date",
+        "date_descend" : "-purchase_date"
+    }
+
     data = Item.objects.all()
     
     if sort:
-        sort_by = sort_dict.get(sort)
+        sort_by = SORT_ITEMS.get(sort)
         if not sort_by:
             return JsonResponse({"Error" : "Not a valid sort option"}, status=404)
         data = data.order_by(sort_by)
     
     if filter_val:
-        filter_type = ITEM_TYPES.get(item_type) #gets the correct item from ITEM_TYPES dict
+        filter_type = FILTER_ITEM_TYPES.get(item_type) #gets the correct item from ITEM_TYPES dict
 
         filter_by = filter_type.get(filter_val) #gets the correct key val pair from specified dict
         #based on type specified from filter_type
