@@ -1,24 +1,41 @@
 import { useState } from 'react'
+import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import HomePage from './pages/HomePage'
 import CollectionPage from './pages/CollectionPage'
+import SignInPage from './pages/SignInPage'
+import SignUpPage from './pages/SignUpPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
   const [selectedCollection, setSelectedCollection] = useState(null)
+  const [authPage, setAuthPage] = useState('signin')
 
   const navigate = (page, data = null) => {
+    if (page === 'signin' || page === 'signup') {
+      setAuthPage(page)
+      return
+    }
     setCurrentPage(page)
     if (data) setSelectedCollection(data)
   }
 
   return (
     <div className="app">
-      {currentPage === 'home' && (
-        <HomePage navigate={navigate} />
-      )}
-      {currentPage === 'collection' && (
-        <CollectionPage navigate={navigate} collection={selectedCollection} />
-      )}
+      {/* Unauthenticated: show sign-in or sign-up */}
+      <SignedOut>
+        {authPage === 'signin' && <SignInPage navigate={navigate} />}
+        {authPage === 'signup' && <SignUpPage navigate={navigate} />}
+      </SignedOut>
+
+      {/* Authenticated: show the main app */}
+      <SignedIn>
+        {currentPage === 'home' && (
+          <HomePage navigate={navigate} />
+        )}
+        {currentPage === 'collection' && (
+          <CollectionPage navigate={navigate} collection={selectedCollection} />
+        )}
+      </SignedIn>
     </div>
   )
 }

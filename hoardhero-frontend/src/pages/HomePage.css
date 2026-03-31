@@ -4,116 +4,145 @@
 }
 
 .home-main {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 48px 32px 80px;
+  padding: 56px 36px 100px;
 }
 
-/* Hero */
+/* ─── Hero ──────────────────────────────── */
 .home-hero {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 40px;
-  margin-bottom: 56px;
+  gap: 48px;
+  margin-bottom: 72px;
   flex-wrap: wrap;
 }
 
 .hero-title {
   font-family: 'Sora', sans-serif;
-  font-size: clamp(32px, 4vw, 48px);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -1px;
-  color: var(--text-primary);
-  margin-bottom: 12px;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
 }
 
 .hero-subtitle {
   font-size: 16px;
   color: var(--text-secondary);
   max-width: 380px;
-  line-height: 1.7;
+  line-height: 1.8;
 }
 
 .hero-stats {
   display: flex;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
+  align-self: flex-start;
+  margin-top: 6px;
 }
 
 .stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: white;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px 28px;
+  padding: 22px 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   box-shadow: var(--shadow-sm);
-  min-width: 120px;
+  min-width: 130px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient);
+  border-radius: 3px 3px 0 0;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(108, 92, 231, 0.25);
 }
 
 .stat-value {
   font-family: 'Sora', sans-serif;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -1px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .stat-label {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
-/* Section */
+/* ─── Section ───────────────────────────── */
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .section-title {
   font-family: 'Sora', sans-serif;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
-/* Collections Grid */
+/* ─── Collections Grid ──────────────────── */
 .collections-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px;
 }
 
 .collections-grid.loaded .collection-card {
-  animation: fadeInUp 0.4s ease both;
+  animation: fadeInUp 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 .collection-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: white;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 26px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .collection-card:hover {
   border-color: var(--accent);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md), 0 0 0 1px var(--accent);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(108, 92, 231, 0.15);
 }
 
 .collection-card-top {
@@ -123,24 +152,34 @@
 }
 
 .collection-icon {
-  font-size: 32px;
+  font-size: 36px;
   line-height: 1;
 }
 
 .collection-arrow {
   color: var(--text-muted);
-  transition: color 0.15s, transform 0.2s;
+  transition: color 0.2s, transform 0.22s, background 0.2s;
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .collection-card:hover .collection-arrow {
-  color: var(--accent);
-  transform: translateX(3px);
+  color: white;
+  background: var(--gradient);
+  transform: translate(2px, -2px);
 }
 
 .collection-name {
   font-family: 'Sora', sans-serif;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.3px;
 }
 
 .collection-meta {
@@ -158,12 +197,12 @@
 }
 
 .meta-value {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--success);
 }
 
 .collection-footer {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .view-btn {
@@ -172,66 +211,78 @@
   background: var(--accent-light);
   color: var(--accent);
   border-radius: var(--radius-sm);
-}
-.collection-card:hover .view-btn {
-  background: var(--accent);
-  color: white;
+  border: 1.5px solid rgba(108, 92, 231, 0.2);
+  font-weight: 600;
 }
 
-/* Add card */
+.collection-card:hover .view-btn {
+  background: var(--gradient);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
+}
+
+/* ─── Add Card ──────────────────────────── */
 .collection-card-add {
   border: 2px dashed var(--border);
-  background: transparent;
+  background: rgba(108, 92, 231, 0.02);
   align-items: center;
   justify-content: center;
-  min-height: 180px;
+  min-height: 210px;
   box-shadow: none;
+  gap: 16px;
 }
+
 .collection-card-add:hover {
   border-color: var(--accent);
+  border-style: solid;
   background: var(--accent-light);
-  transform: translateY(-3px);
-  box-shadow: none;
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
 }
 
 .add-icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: var(--border);
+  background: var(--bg-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  transition: all 0.2s;
+  transition: all 0.22s;
 }
+
 .collection-card-add:hover .add-icon {
-  background: var(--accent);
+  background: var(--gradient);
   color: white;
+  box-shadow: 0 8px 24px rgba(108, 92, 231, 0.3);
+  transform: scale(1.1);
 }
 
 .add-label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-muted);
 }
+
 .collection-card-add:hover .add-label {
   color: var(--accent);
 }
 
-/* Modal form */
+/* ─── Modal Form ────────────────────────── */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .form-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
   margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 1px;
 }
 
 .type-grid {
@@ -244,30 +295,47 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 14px 8px;
+  gap: 7px;
+  padding: 16px 8px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.15s;
-  background: var(--bg);
+  transition: all 0.18s;
+  background: white;
 }
+
 .type-option:hover {
   border-color: var(--accent);
   background: var(--accent-light);
 }
+
 .type-option.selected {
   border-color: var(--accent);
   background: var(--accent-light);
-  box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.12);
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.12);
 }
 
-.type-icon { font-size: 22px; }
-.type-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-align: center; }
+.type-option.selected .type-label {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.type-icon {
+  font-size: 22px;
+}
+
+.type-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+}
 
 .modal-actions {
   display: flex;
   gap: 10px;
   justify-content: flex-end;
   margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
 }

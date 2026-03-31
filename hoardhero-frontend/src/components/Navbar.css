@@ -2,16 +2,18 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(247, 248, 250, 0.85);
-  backdrop-filter: blur(12px);
+  background: rgba(240, 239, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 16px rgba(108, 92, 231, 0.07);
 }
 
 .navbar-inner {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 32px;
-  height: 60px;
+  padding: 0 36px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -20,47 +22,39 @@
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
 }
 
 .brand-icon {
-  width: 34px;
-  height: 34px;
-  background: var(--accent);
-  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  background: var(--gradient);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.3);
+  box-shadow: 0 4px 14px rgba(108, 92, 231, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.navbar-brand:hover .brand-icon {
+  transform: scale(1.08) rotate(-5deg);
+  box-shadow: 0 6px 22px rgba(108, 92, 231, 0.5);
 }
 
 .brand-name {
   font-family: 'Sora', sans-serif;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.3px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.navbar-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--accent-light);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.navbar-avatar:hover {
-  background: var(--accent);
-  color: white;
+  gap: 10px;
 }

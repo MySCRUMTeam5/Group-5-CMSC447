@@ -4,12 +4,12 @@
 }
 
 .collection-main {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 40px 32px 80px;
+  padding: 44px 36px 80px;
 }
 
-/* Page Header */
+/* ─── Page Header ─────────────────────── */
 .page-header {
   display: flex;
   align-items: center;
@@ -26,16 +26,19 @@
 }
 
 .page-icon {
-  font-size: 40px;
+  font-size: 42px;
   line-height: 1;
 }
 
 .page-title {
   font-family: 'Sora', sans-serif;
   font-size: 26px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-weight: 800;
   letter-spacing: -0.5px;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-subtitle {
@@ -52,10 +55,10 @@
 }
 
 .value-chip {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: white;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 14px;
+  padding: 8px 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -64,9 +67,9 @@
 
 .value-chip-label {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   color: var(--text-muted);
 }
 
@@ -75,14 +78,23 @@
   font-size: 16px;
   font-weight: 700;
 }
-.value-chip-val.gain  { color: var(--success); }
-.value-chip-val.loss  { color: var(--danger);  }
-.value-chip-val.spent { color: var(--text-primary); }
 
-/* Filter Bar */
+.value-chip-val.gain {
+  color: var(--success);
+}
+
+.value-chip-val.loss {
+  color: var(--danger);
+}
+
+.value-chip-val.spent {
+  color: var(--text-primary);
+}
+
+/* ─── Filter Bar ──────────────────────── */
 .filter-bar {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: white;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 16px 20px;
   display: flex;
@@ -111,7 +123,6 @@
 .search-input {
   padding-left: 36px !important;
   padding-right: 32px !important;
-  background: var(--bg);
 }
 
 .search-clear {
@@ -131,10 +142,12 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+  transition: all 0.15s;
 }
+
 .search-clear:hover {
-  background: var(--border);
-  color: var(--text-primary);
+  background: var(--bg-muted);
+  color: var(--accent);
 }
 
 .filter-group {
@@ -144,34 +157,38 @@
 }
 
 .filter-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.6px;
   margin-right: 4px;
 }
 
 .filter-chip {
-  padding: 5px 12px;
+  padding: 5px 14px;
   border-radius: 100px;
   border: 1.5px solid var(--border);
-  background: transparent;
-  font-family: 'DM Sans', sans-serif;
+  background: white;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s;
 }
+
 .filter-chip:hover {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--accent-light);
 }
+
 .filter-chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--gradient);
+  border-color: transparent;
   color: white;
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
 }
 
 .sort-wrap {
@@ -185,21 +202,20 @@
   width: auto;
   padding: 7px 12px;
   font-size: 13px;
-  background: var(--bg);
   cursor: pointer;
 }
 
-/* Results count */
+/* ─── Results ─────────────────────────── */
 .results-count {
   font-size: 13px;
   color: var(--text-secondary);
   margin-bottom: 12px;
 }
 
-/* Table */
+/* ─── Table ───────────────────────────── */
 .items-table-wrap {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: white;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -211,8 +227,8 @@
 }
 
 .items-table thead tr {
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  border-bottom: 1.5px solid var(--border);
+  background: var(--bg-muted);
 }
 
 .items-table th {
@@ -220,7 +236,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.7px;
   color: var(--text-muted);
   text-align: left;
   white-space: nowrap;
@@ -231,8 +247,14 @@
   transition: background 0.12s;
   animation: fadeInUp 0.3s ease both;
 }
-.item-row:last-child { border-bottom: none; }
-.item-row:hover { background: var(--bg); }
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-row:hover {
+  background: var(--bg);
+}
 
 .items-table td {
   padding: 14px 16px;
@@ -242,14 +264,23 @@
 }
 
 .item-title {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
-.price-cell { font-variant-numeric: tabular-nums; }
+.price-cell {
+  font-variant-numeric: tabular-nums;
+}
 
-.profit-pos { color: var(--success); font-weight: 600; }
-.profit-neg { color: var(--danger);  font-weight: 600; }
+.profit-pos {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.profit-neg {
+  color: var(--danger);
+  font-weight: 700;
+}
 
 .profit-delta {
   display: block;
@@ -257,8 +288,14 @@
   font-weight: 500;
   margin-top: 1px;
 }
-.profit-delta.pos { color: var(--success); }
-.profit-delta.neg { color: var(--danger);  }
+
+.profit-delta.pos {
+  color: var(--success);
+}
+
+.profit-delta.neg {
+  color: var(--danger);
+}
 
 .date-cell {
   color: var(--text-muted);
@@ -274,28 +311,67 @@
   margin-right: 6px;
   vertical-align: middle;
 }
-.condition-dot[data-cond="Mint"]      { background: var(--success); }
-.condition-dot[data-cond="Excellent"] { background: #3B82F6; }
-.condition-dot[data-cond="Good"]      { background: var(--warning); }
-.condition-dot[data-cond="Fair"]      { background: #F97316; }
-.condition-dot[data-cond="Poor"]      { background: var(--danger); }
 
-.delete-btn { opacity: 0.5; }
-.item-row:hover .delete-btn { opacity: 1; }
+.condition-dot[data-cond="Mint"] {
+  background: var(--success);
+}
 
-/* Empty state */
+.condition-dot[data-cond="Excellent"] {
+  background: var(--accent-2);
+}
+
+.condition-dot[data-cond="Good"] {
+  background: var(--warning);
+}
+
+.condition-dot[data-cond="Fair"] {
+  background: #f97316;
+}
+
+.condition-dot[data-cond="Poor"] {
+  background: var(--danger);
+}
+
+.delete-btn {
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.item-row:hover .delete-btn {
+  opacity: 1;
+}
+
+/* ─── Empty State ─────────────────────── */
 .empty-state {
   text-align: center;
   padding: 80px 40px;
   color: var(--text-muted);
 }
-.empty-icon { font-size: 48px; margin-bottom: 12px; }
-.empty-state h3 { font-family: 'Sora', sans-serif; font-size: 18px; color: var(--text-secondary); margin-bottom: 6px; }
-.empty-state p  { font-size: 14px; }
 
-/* Add Modal */
-.modal-wide { max-width: 600px; }
-.modal-sm   { max-width: 420px; }
+.empty-icon {
+  font-size: 52px;
+  margin-bottom: 14px;
+}
+
+.empty-state h3 {
+  font-family: 'Sora', sans-serif;
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 14px;
+}
+
+/* ─── Modals ──────────────────────────── */
+.modal-wide {
+  max-width: 600px;
+}
+
+.modal-sm {
+  max-width: 420px;
+}
 
 .form-grid {
   display: grid;
@@ -304,7 +380,9 @@
   margin-bottom: 8px;
 }
 
-.form-span-2 { grid-column: 1 / -1; }
+.form-span-2 {
+  grid-column: 1 / -1;
+}
 
 .form-group {
   display: flex;
@@ -313,11 +391,11 @@
 }
 
 .form-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--text-secondary);
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
 }
 
 .form-error {
@@ -326,7 +404,9 @@
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 13px;
+  font-weight: 500;
   margin-bottom: 16px;
+  border-left: 3px solid var(--danger);
 }
 
 .modal-actions {
@@ -334,19 +414,21 @@
   gap: 10px;
   justify-content: flex-end;
   margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
 }
 
 .btn-delete-confirm {
   background: var(--danger);
   color: white;
 }
+
 .btn-delete-confirm:hover {
-  background: #DC2626;
+  background: #cc2929;
 }
 
 .delete-confirm-text {
   font-size: 14px;
   color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 4px;
+  line-height: 1.7;
 }
