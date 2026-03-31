@@ -36,10 +36,20 @@ function ProfilePage({ navigate }) {
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
-        <button style={styles.cancelButton} onClick={() => navigate('home')}>
-            Back to Home
-        </button>
+    <div style={styles.card}>
+  
+        {/* Back Button */}
+        <div style={styles.backInsideCard}>
+        <button 
+            style={styles.backButton} 
+            onClick={() => navigate('home')}
+        >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back
+    </button>
+    </div>
         <div style={styles.imageSection}>
           {profile.profile_picture ? (
             <img
@@ -121,14 +131,32 @@ const styles = {
     padding: "20px"
   },
   card: {
-    backgroundColor: "#ffffff",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-    width: "100%",
-    maxWidth: "500px",
-    textAlign: "center"
-  },
+  position: "relative", 
+  backgroundColor: "#ffffff",
+  padding: "30px",
+  borderRadius: "12px",
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+  width: "100%",
+  maxWidth: "500px",
+  textAlign: "center"
+},
+  backInsideCard: {
+  position: "absolute",
+  top: "15px",
+  left: "15px"
+},
+
+backButton: {
+  display: "flex",
+  alignItems: "center",
+  gap: "6px",
+  padding: "6px 10px",
+  border: "none",
+  borderRadius: "6px",
+  backgroundColor: "#e5e7eb",
+  cursor: "pointer",
+  fontWeight: "bold"
+},
   imageSection: {
     marginBottom: "20px"
   },
