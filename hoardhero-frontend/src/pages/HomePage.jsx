@@ -1,41 +1,101 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { COLLECTION_TYPES } from '../config/collectionConfig'
+import { getCollections, createCollection } from '../api/hoardheroAPI'
 import './HomePage.css'
-
-// TODO: Replace with GET /api/collections/
-const MOCK_COLLECTIONS = []
 
 export default function HomePage({ navigate }) {
   const [collections, setCollections] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [newCol, setNewCol]             = useState({ name: '', type: 'games' })
   const [loaded, setLoaded]             = useState(false)
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState('')
+  const [addError, setAddError]         = useState('')
 
+  // ── Load collections on mount ─────────────────────────────────────────
   useEffect(() => {
-    // TODO: fetch('/api/collections/').then(r => r.json()).then(setCollections)
-    setTimeout(() => setLoaded(true), 80)
+    fetchCollections()
   }, [])
+
+  const fetchCollections = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      const data = await getCollections()
+      // Map Django response fields to frontend shape
+      const mapped = (Array.isArray(data) ? data : data.results || []).map(col => {
+        // Django uses 'video_games', frontend config uses 'games' etc.
+        // Map Django collection_type to frontend type value
+        const typeMap = {
+          'video_games':   'games',
+          'trading_cards': 'trading_cards',
+          'comics':        'comics',
+          'funko_pops':    'funko',
+          'lego_sets':     'lego',
+          'sports_cards':  'sports_cards',
+          'music':         'music',
+          'movies':        'movies',
+        }
+        const frontendType = typeMap[col.collection_type] || col.collection_type
+        const type = COLLECTION_TYPES.find(t => t.value === frontendType)
+        return {
+          id:         col.id,
+          name:       col.name,
+          type:       frontendType,
+          itemCount:  col.item_count  || 0,
+          totalValue: parseFloat(col.total_value) || 0,
+          icon:       type?.icon || '📦',
+        }
+      })
+      setCollections(mapped)
+    } catch (err) {
+      setError('Could not load collections. Is the Django server running?')
+      console.error(err)
+    } finally {
+      setLoading(false)
+      setLoaded(true)
+    }
+  }
+
+  // ── Create a new collection ───────────────────────────────────────────
+  const handleAddCollection = async () => {
+    if (!newCol.name.trim()) return
+    try {
+      setAddError('')
+      // Map frontend type to Django collection_type
+      const typeMap = {
+        'games':        'video_games',
+        'trading_cards':'trading_cards',
+        'comics':       'comics',
+        'funko':        'funko_pops',
+        'lego':         'lego_sets',
+        'sports_cards': 'sports_cards',
+        'music':        'music',
+        'movies':       'movies',
+      }
+      const djangoType = typeMap[newCol.type] || newCol.type
+      const data = await createCollection({ name: newCol.name, type: djangoType })
+      const type = COLLECTION_TYPES.find(t => t.value === newCol.type)
+      const created = {
+        id:         data.id,
+        name:       data.name,
+        type:       newCol.type,
+        itemCount:  0,
+        totalValue: 0,
+        icon:       type?.icon || '📦',
+      }
+      setCollections(prev => [...prev, created])
+      setNewCol({ name: '', type: 'games' })
+      setShowAddModal(false)
+    } catch (err) {
+      setAddError(err.message || 'Failed to create collection.')
+      console.error(err)
+    }
+  }
 
   const totalItems = collections.reduce((s, c) => s + (c.itemCount || 0), 0)
   const totalValue = collections.reduce((s, c) => s + (c.totalValue || 0), 0)
-
-  const handleAddCollection = () => {
-    if (!newCol.name.trim()) return
-    const type = COLLECTION_TYPES.find(t => t.value === newCol.type)
-    const created = {
-      id: Date.now(),
-      name: newCol.name,
-      type: newCol.type,
-      itemCount: 0,
-      totalValue: 0,
-      icon: type?.icon || '📦',
-    }
-    // TODO: POST /api/collections/  { name, type }
-    setCollections(prev => [...prev, created])
-    setNewCol({ name: '', type: 'games' })
-    setShowAddModal(false)
-  }
 
   return (
     <div className="home-page">
@@ -78,50 +138,72 @@ export default function HomePage({ navigate }) {
             </button>
           </div>
 
-          <div className={`collections-grid ${loaded ? 'loaded' : ''}`}>
-            {collections.map((col, i) => (
-              <div
-                key={col.id}
-                className="collection-card"
-                style={{ animationDelay: `${i * 55}ms` }}
-                onClick={() => navigate('collection', col)}
-              >
-                <div className="collection-card-top">
-                  <div className="collection-icon">{col.icon}</div>
-                  <div className="collection-arrow">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
+          {/* Error state */}
+          {error && (
+            <div className="api-error">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+              </svg>
+              {error}
+              <button className="btn btn-sm btn-secondary" onClick={fetchCollections}>Retry</button>
+            </div>
+          )}
+
+          {/* Loading state */}
+          {loading && !error && (
+            <div className="loading-state">
+              <div className="spinner" />
+              <p>Loading collections...</p>
+            </div>
+          )}
+
+          {/* Collections grid */}
+          {!loading && !error && (
+            <div className={`collections-grid ${loaded ? 'loaded' : ''}`}>
+              {collections.map((col, i) => (
+                <div
+                  key={col.id}
+                  className="collection-card"
+                  style={{ animationDelay: `${i * 55}ms` }}
+                  onClick={() => navigate('collection', col)}
+                >
+                  <div className="collection-card-top">
+                    <div className="collection-icon">{col.icon}</div>
+                    <div className="collection-arrow">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <h3 className="collection-name">{col.name}</h3>
+                  <div className="collection-meta">
+                    <span className="meta-item">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                      </svg>
+                      {col.itemCount} items
+                    </span>
+                    <span className="meta-item meta-value">
+                      ${(col.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="collection-footer">
+                    <span className="btn btn-primary btn-sm view-btn">View Collection</span>
                   </div>
                 </div>
-                <h3 className="collection-name">{col.name}</h3>
-                <div className="collection-meta">
-                  <span className="meta-item">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
-                    </svg>
-                    {col.itemCount} items
-                  </span>
-                  <span className="meta-item meta-value">
-                    ${(col.totalValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-                <div className="collection-footer">
-                  <span className="btn btn-primary btn-sm view-btn">View Collection</span>
-                </div>
-              </div>
-            ))}
+              ))}
 
-            {/* Add card */}
-            <div className="collection-card collection-card-add" onClick={() => setShowAddModal(true)}>
-              <div className="add-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 5v14M5 12h14"/>
-                </svg>
+              {/* Add card */}
+              <div className="collection-card collection-card-add" onClick={() => setShowAddModal(true)}>
+                <div className="add-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 5v14M5 12h14"/>
+                  </svg>
+                </div>
+                <p className="add-label">Add a new collection</p>
               </div>
-              <p className="add-label">Add a new collection</p>
             </div>
-          </div>
+          )}
         </section>
       </main>
 
@@ -131,8 +213,10 @@ export default function HomePage({ navigate }) {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">New Collection</h2>
-              <button className="modal-close" onClick={() => setShowAddModal(false)}>×</button>
+              <button className="modal-close" onClick={() => { setShowAddModal(false); setAddError('') }}>×</button>
             </div>
+
+            {addError && <div className="form-error">{addError}</div>}
 
             <div className="form-group">
               <label className="form-label">Collection Name</label>
@@ -163,7 +247,7 @@ export default function HomePage({ navigate }) {
             </div>
 
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+              <button className="btn btn-secondary" onClick={() => { setShowAddModal(false); setAddError('') }}>Cancel</button>
               <button className="btn btn-primary" onClick={handleAddCollection} disabled={!newCol.name.trim()}>
                 Create Collection
               </button>

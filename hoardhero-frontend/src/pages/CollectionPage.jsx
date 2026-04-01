@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import Navbar from '../components/Navbar'
 import { getConfig, BADGE_COLORS, CONDITION_COLORS } from '../config/collectionConfig'
+import { getItems, addItem, deleteItem } from '../api/hoardheroAPI'
 import './CollectionPage.css'
-
-// TODO: Replace with GET /api/collections/:id/items/
-const MOCK_ITEMS = []
 
 const SORT_OPTIONS = [
   { value: 'dateAdded-desc', label: 'Newest First' },
@@ -60,7 +58,9 @@ export default function CollectionPage({ navigate, collection }) {
   const [confirmDelete,  setConfirmDelete]  = useState(null)
   const [newItem,        setNewItem]        = useState({})
   const [formError,      setFormError]      = useState('')
-  const [expandedTitles, setExpandedTitles] = useState({}) // title -> bool
+  const [expandedTitles, setExpandedTitles] = useState({})
+  const [loading,        setLoading]        = useState(true)
+  const [pageError,      setPageError]      = useState('')
 
   useEffect(() => {
     setItems([])
@@ -68,8 +68,33 @@ export default function CollectionPage({ navigate, collection }) {
     setActiveFilters({})
     setNewItem({})
     setExpandedTitles({})
-    // TODO: fetch(`/api/collections/${col.id}/items/`).then(r => r.json()).then(setItems)
+    fetchItems()
   }, [col.id])
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true)
+      setPageError('')
+      const data = await getItems(col.id, col.type)
+      // Map Django Item fields to frontend shape
+      const mapped = (Array.isArray(data) ? data : []).map(item => ({
+        id:            item.id,
+        title:         item.name,
+        condition:     item.condition,
+        purchasePrice: parseFloat(item.purchase_price) || 0,
+        currentValue:  parseFloat(item.current_value)  || 0,
+        dateAdded:     item.created_at?.slice(0, 10) || '',
+        // Type-specific fields spread in
+        ...item,
+      }))
+      setItems(mapped)
+    } catch (err) {
+      setPageError('Could not load items. Is the Django server running?')
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // ── Duplicate maps (computed from ALL items, before filtering) ────────────
   const exactDupeMap   = useMemo(() => buildExactDupeMap(items),   [items])
@@ -156,35 +181,60 @@ export default function CollectionPage({ navigate, collection }) {
   }, [exactDupeMap])
 
   // ── Add item ──────────────────────────────────────────────────────────────
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!newItem.title?.trim()) { setFormError('Title is required.'); return }
-    const item = {
-      ...newItem,
-      id: Date.now(),
-      purchasePrice: parseFloat(newItem.purchasePrice) || 0,
-      currentValue:  parseFloat(newItem.currentValue)  || 0,
-      dateAdded: new Date().toISOString().slice(0, 10),
+    try {
+      setFormError('')
+      const data = await addItem(col.id, newItem)
+      const created = {
+        id:            data.item?.id || Date.now(),
+        title:         data.item?.name || newItem.title,
+        condition:     newItem.condition,
+        purchasePrice: parseFloat(newItem.purchasePrice) || 0,
+        currentValue:  parseFloat(newItem.currentValue)  || 0,
+        dateAdded:     data.item?.created_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+        ...newItem,
+      }
+      setItems(prev => [created, ...prev])
+      setNewItem({})
+      setShowAddModal(false)
+    } catch (err) {
+      setFormError(err.message || 'Failed to add item. Please try again.')
+      console.error(err)
     }
-    // TODO: POST /api/collections/:id/items/  { ...item }
-    setItems(prev => [item, ...prev])
-    setNewItem({})
-    setFormError('')
-    setShowAddModal(false)
   }
 
   // ── Delete item ───────────────────────────────────────────────────────────
-  const handleDelete = (id) => {
-    // TODO: DELETE /api/collections/:id/items/:itemId/
-    setItems(prev => prev.filter(i => i.id !== id))
-    setConfirmDelete(null)
+  const handleDelete = async (id) => {
+    if (!id) return
+    try {
+      await deleteItem(col.id, id)
+      setItems(prev => prev.filter(i => i.id !== id))
+    } catch (err) {
+      // 404 means already deleted — still remove from UI
+      if (err.message?.includes('404') || err.message?.includes('Not found')) {
+        setItems(prev => prev.filter(i => i.id !== id))
+      } else {
+        console.error('Delete failed:', err)
+      }
+    } finally {
+      setConfirmDelete(null)
+    }
   }
 
   // Delete ALL exact copies of an item
-  const handleDeleteAll = (item) => {
-    const fp = itemFingerprint(item)
-    const ids = new Set((exactDupeMap[fp] || []).map(i => i.id))
-    setItems(prev => prev.filter(i => !ids.has(i.id)))
-    setConfirmDelete(null)
+  const handleDeleteAll = async (item) => {
+    const fp  = itemFingerprint(item)
+    const ids = (exactDupeMap[fp] || []).map(i => i.id)
+    const idSet = new Set(ids)
+    try {
+      await Promise.all(ids.map(id => deleteItem(col.id, id)))
+    } catch (err) {
+      console.error('Delete all failed:', err)
+    } finally {
+      setItems(prev => prev.filter(i => !idSet.has(i.id)))
+      setConfirmDelete(null)
+    }
   }
 
   // ── Filter change ─────────────────────────────────────────────────────────
@@ -347,8 +397,27 @@ export default function CollectionPage({ navigate, collection }) {
           <p className="results-count">Showing {displayItems.length} of {items.length} items</p>
         )}
 
+        {/* API error state */}
+        {pageError && (
+          <div className="api-error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+            </svg>
+            {pageError}
+            <button className="btn btn-sm btn-secondary" onClick={fetchItems}>Retry</button>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {loading && !pageError && (
+          <div className="loading-state">
+            <div className="spinner" />
+            <p>Loading items...</p>
+          </div>
+        )}
+
         {/* Empty states */}
-        {items.length === 0 ? (
+        {!loading && !pageError && items.length === 0 ? (
           <div className="empty-state animate-in">
             <div className="empty-icon">{col.icon}</div>
             <h3>No items yet</h3>
