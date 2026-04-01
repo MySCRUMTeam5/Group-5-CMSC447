@@ -14,7 +14,7 @@ router.register(r'ratings', CollectionRatingViewSet)
 router.register(r'duplicates', DuplicateFlagViewSet)
 
 urlpatterns = [
-    path("api/collections/", views.add_collection, name="add_collection"),
+    path("collections/", views.add_get_collections, name="add_get_collections"),
     path("items/add/", views.add_item, name="add_item"),
     path("items/delete/<int:collection_id>/<int:item_id>/", views.delete_item, name="delete_item"),
     path(
@@ -23,5 +23,5 @@ urlpatterns = [
         name="get_collection_item_count",
     ),
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
-    path("", include(router.urls)),
+    path("", include(router.urls))
 ]

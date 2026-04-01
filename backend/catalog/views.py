@@ -1,4 +1,5 @@
 import json
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -8,31 +9,64 @@ from .models import User, Collection, Item, CollectionRating, DuplicateFlag
 from .serializers import (
     UserSerializer, CollectionSerializer, ItemSerializer,
     CollectionRatingSerializer, DuplicateFlagSerializer
-)
+)    
+
+User = get_user_model() #until we set up auth
 
 @csrf_exempt
-@require_http_methods(["POST"])
-def add_collection(request):
-    data = json.loads(request.body)
+@require_http_methods(["POST", "GET"])
+def add_get_collections(request):
+    if request.method == "GET":
+        collections = Collection.objects.all()
 
-    if "name" not in data:
-        return JsonResponse({"Error" : "Collection must have a name"}, status=400)
+        data = []
 
-    collection = Collection.objects.create(
-        owner=request.user,
-        name=data["name"],
-        description=data.get("description",""),
-        category=data.get("category", ""),
-        collection_type=data.get("type", "video_games"),
-        is_public=data.get("is_public", False)
-        shared_with=data.get(request.user)
-    )
+        for c in collections:
+            data.append({
+                "id" : c.id,
+                "name" : c.name,
+                "description" : c.description,
+                "category": c.category,
+                "type": c.collection_type,
+                "is_public": c.is_public,
+                "itemCount": c.item_count,
+                "totalValue": c.total_value,
+            })
+        
+        return JsonResponse(data, safe=False)
 
-    return JsonResponse({
-        "id" : collection.id,
-        "name" : collection.name,
-        ""
-    })
+    elif request.method == "POST":
+        data = json.loads(request.body)
+
+        if "name" not in data:
+            return JsonResponse({"Error" : "Collection must have a name"}, status=400)
+
+        if request.user.is_authenticated:
+            user = request.user
+        
+        else:
+            user = User.objects.first()
+        
+        collection = Collection.objects.create(
+            owner=user,
+            name=data["name"],
+            description=data.get("description",""),
+            category=data.get("category", ""),
+            collection_type=data.get("type", "video_games"),
+            is_public=data.get("is_public", False)
+            )
+
+        return JsonResponse({
+            "id" : collection.id,
+            "name" : collection.name,
+            "description" : collection.description,
+            "category": collection.category,
+            "type": collection.collection_type,
+            "is_public": collection.is_public,
+            "itemCount": collection.item_count,
+            "totalValue": collection.total_value,
+            }, status=201)
+        
 
 
 @csrf_exempt
