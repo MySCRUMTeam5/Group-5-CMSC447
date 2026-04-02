@@ -5,13 +5,54 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db.models import Sum
 from rest_framework import viewsets
-from .models import User, Collection, Item, CollectionRating, DuplicateFlag
+from .models import (
+    User, Collection, Item, CollectionRating, DuplicateFlag,
+    VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
+    LegoSetItem, SportsCardItem, MusicItem, MovieItem
+)
 from .serializers import (
     UserSerializer, CollectionSerializer, ItemSerializer,
     CollectionRatingSerializer, DuplicateFlagSerializer
-)    
+)
 
-User = get_user_model() #until we set up auth
+User = get_user_model()
+
+# ─── Maps collection_type to its model and accepted fields ───
+COLLECTION_TYPE_CONFIG = {
+    "video_games": {
+        "model": VideoGameItem,
+        "fields": ["platform", "genre", "completeness", "play_status"],
+    },
+    "trading_cards": {
+        "model": TradingCardItem,
+        "fields": ["series", "set_name", "card_number", "grade"],
+    },
+    "comics": {
+        "model": ComicItem,
+        "fields": ["publisher", "issue_title", "issue_number", "grade", "read_status"],
+    },
+    "funko_pops": {
+        "model": FunkoPopItem,
+        "fields": ["series", "box_number", "completeness", "exclusive"],
+    },
+    "lego_sets": {
+        "model": LegoSetItem,
+        "fields": ["series", "set_number", "completeness", "piece_count"],
+    },
+    "sports_cards": {
+        "model": SportsCardItem,
+        "fields": ["sport", "player_name", "card_number", "year", "grade"],
+    },
+    "music": {
+        "model": MusicItem,
+        "fields": ["artist", "album_title", "format", "genre"],
+    },
+    "movies": {
+        "model": MovieItem,
+        "fields": ["title", "format", "genre", "director", "watched_status"],
+    },
+}
+
 
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
@@ -32,7 +73,7 @@ def add_get_collections(request):
                 "itemCount": c.item_count,
                 "totalValue": c.total_value,
             })
-        
+
         return JsonResponse(data, safe=False)
 
     elif request.method == "POST":
@@ -43,10 +84,10 @@ def add_get_collections(request):
 
         if request.user.is_authenticated:
             user = request.user
-        
+
         else:
             user = User.objects.first()
-        
+
         collection = Collection.objects.create(
             owner=user,
             name=data["name"],
@@ -66,7 +107,6 @@ def add_get_collections(request):
             "itemCount": collection.item_count,
             "totalValue": collection.total_value,
             }, status=201)
-        
 
 
 @csrf_exempt
@@ -74,13 +114,16 @@ def add_get_collections(request):
 def add_item(request):
     try:
         data = json.loads(request.body)
+
         if "collection_id" not in data or "name" not in data:
             return JsonResponse({"error": "collection_id and name are required"}, status=400)
+
         try:
             collection = Collection.objects.get(id=data["collection_id"])
         except Collection.DoesNotExist:
             return JsonResponse({"error": "Collection not found"}, status=404)
 
+        # Create the base item (shared fields)
         item = Item.objects.create(
             collection=collection,
             name=data["name"],
@@ -99,11 +142,60 @@ def add_item(request):
             edition_details=data.get("edition_details", ""),
         )
 
+        # Create the type-specific record based on the collection's type
+        type_data = {}
+        config = COLLECTION_TYPE_CONFIG.get(collection.collection_type)
+        if config:
+            type_fields = {}
+            for field in config["fields"]:
+                if field in data:
+                    type_fields[field] = data[field]
+            type_obj = config["model"].objects.create(item=item, **type_fields)
+            type_data = {field: getattr(type_obj, field) for field in config["fields"]}
+
         return JsonResponse({
             "message": "Item added successfully",
             "item": {
                 "id": item.id,
                 "collection_id": item.collection.id,
+                "collection_type": collection.collection_type,
+                "name": item.name,
+                "description": item.description,
+                "category": item.category,
+                "condition": item.condition,
+                "quantity": item.quantity,
+                "barcode": item.barcode,
+                "purchase_price": str(item.purchase_price),
+                "current_value": str(item.current_value),
+                "purchase_date": str(item.purchase_date) if item.purchase_date else None,
+                "usage_status": item.usage_status,
+                "listing_status": item.listing_status,
+                "asking_price": str(item.asking_price),
+                "is_special_edition": item.is_special_edition,
+                "edition_details": item.edition_details,
+                "created_at": item.created_at.isoformat(),
+                "type_attributes": type_data,
+            }
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_items(request, collection_id):
+    try:
+        collection = Collection.objects.get(id=collection_id)
+        items = collection.items.all()
+
+        items_list = []
+        config = COLLECTION_TYPE_CONFIG.get(collection.collection_type)
+
+        for item in items:
+            item_data = {
+                "id": item.id,
                 "name": item.name,
                 "description": item.description,
                 "category": item.category,
@@ -120,12 +212,24 @@ def add_item(request):
                 "edition_details": item.edition_details,
                 "created_at": item.created_at.isoformat(),
             }
-        }, status=201)
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+            # Add type-specific fields if they exist
+            if config:
+                related_name = config["model"].__name__.lower()
+                try:
+                    type_obj = config["model"].objects.get(item=item)
+                    item_data["type_attributes"] = {
+                        field: getattr(type_obj, field) for field in config["fields"]
+                    }
+                except config["model"].DoesNotExist:
+                    item_data["type_attributes"] = {}
+
+            items_list.append(item_data)
+
+        return JsonResponse(items_list, safe=False, status=200)
+
+    except Collection.DoesNotExist:
+        return JsonResponse({"error": "Collection not found"}, status=404)
 
 
 @csrf_exempt
@@ -164,18 +268,18 @@ def get_collection_item_count(request, collection_id):
     except Collection.DoesNotExist:
         return JsonResponse({"error": "Collection not found"}, status=404)
 
+
 @require_http_methods(['GET'])
 def sort_filter_collection(request):
     if request.method != 'GET':
         return JsonResponse({"Error": "Method not allowed"}, status = 405)
-    
-    sort = request.GET.get("sort") #gets what value to sort by
-    
-    filter_val = request.GET.get("filter") #gets what value to filter by
 
-    item_type = request.GET.get("type") #gets the item type that we are filtering/sorting by
+    sort = request.GET.get("sort")
 
-    #sets up different dictionaries based on what item collection we are filtering
+    filter_val = request.GET.get("filter")
+
+    item_type = request.GET.get("type")
+
     VIDEO_GAMES_FILTER_FIELDS = {
         "playStatus" : "play_status__iexact",
         "platform" : "platform__iexact",
@@ -200,7 +304,7 @@ def sort_filter_collection(request):
         "completeness" : "completeness__iexact",
         "exclusive" : "exclusive__iexact"
         }
-    
+
     LEGO_FILTER_FIELDS = {
         "series" : "series__iexact",
         "completeness" : "completness__iexact"
@@ -243,23 +347,22 @@ def sort_filter_collection(request):
     }
 
     data = Item.objects.all()
-    
+
     if sort:
         sort_by = SORT_ITEMS.get(sort)
         if not sort_by:
             return JsonResponse({"Error" : "Not a valid sort option"}, status=404)
         data = data.order_by(sort_by)
-    
-    if filter_val:
-        filter_type = FILTER_ITEM_TYPES.get(item_type) #gets the correct item from ITEM_TYPES dict
 
-        filter_by = filter_type.get(filter_val) #gets the correct key val pair from specified dict
-        #based on type specified from filter_type
+    if filter_val:
+        filter_type = FILTER_ITEM_TYPES.get(item_type)
+
+        filter_by = filter_type.get(filter_val)
 
         if not filter_by:
             return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
         data = Item.objects.filter(**{filter_by : value})
-    
+
     return JsonResponse(list(data.values()), safe=False, status=200)
 
 
