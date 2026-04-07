@@ -3,7 +3,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "9001:8000"
+      - "8001:8000"
     volumes:
       - ./backend:/app
     environment:
@@ -13,7 +13,7 @@ services:
   frontend:
     build: ./hoardhero-frontend
     ports:
-      - "9000:5173"
+      - "5173:5173"
     volumes:
       - ./hoardhero-frontend:/app
       - /app/node_modules
