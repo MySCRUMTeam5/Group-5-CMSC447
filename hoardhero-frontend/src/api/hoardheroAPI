@@ -1,0 +1,110 @@
+// hoardheroAPI.js
+// Central place for all Django API calls.
+// Base URL can be changed here when deploying.
+
+const BASE_URL = 'http://127.0.0.1:8001'
+
+// ── CSRF helper ───────────────────────────────────────────────────────────
+// Django requires a CSRF token for POST/PUT/DELETE requests
+function getCsrfToken() {
+  const name = 'csrftoken'
+  const cookies = document.cookie.split(';')
+  for (let cookie of cookies) {
+    const trimmed = cookie.trim()
+    if (trimmed.startsWith(name + '=')) {
+      return decodeURIComponent(trimmed.substring(name.length + 1))
+    }
+  }
+  return null
+}
+
+// ── Helper ────────────────────────────────────────────────────────────────
+async function request(method, path, body = null) {
+  const headers = { 'Content-Type': 'application/json' }
+
+  // Add CSRF token for any state-changing request
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrf = getCsrfToken()
+    if (csrf) headers['X-CSRFToken'] = csrf
+  }
+
+  const options = { method, headers, credentials: 'include' }
+  if (body) options.body = JSON.stringify(body)
+
+  const res = await fetch(`${BASE_URL}${path}`, options)
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `Request failed: ${res.status}` }))
+    throw new Error(err.error || err.Error || err.detail || `Request failed: ${res.status}`)
+  }
+
+  // 204 No Content (Django delete) — no body to parse
+  if (res.status === 204) return { success: true }
+
+  return res.json()
+}
+
+// ── CSRF init ─────────────────────────────────────────────────────────────
+// Call this once on app startup to get the CSRF cookie from Django
+export async function initCsrf() {
+  try {
+    await fetch(`${BASE_URL}/api/collections/`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+  } catch (err) {
+    console.warn('Could not initialize CSRF token:', err)
+  }
+}
+
+// ── Collections ───────────────────────────────────────────────────────────
+
+// GET all collections
+// Endpoint: GET /api/collections/
+export async function getCollections() {
+  return request('GET', '/api/collections/')
+}
+
+// POST create a new collection
+// Endpoint: POST /api/collections/
+export async function createCollection({ name, type }) {
+  return request('POST', '/api/collections/', { name, type })
+}
+
+// ── Items ─────────────────────────────────────────────────────────────────
+
+// GET all items for a specific collection
+// Endpoint: GET /api/collections/:id/items/
+export async function getItems(collectionId, collectionType, { sort, filter, filterVal } = {}) {
+  const params = new URLSearchParams()
+  if (sort)      params.set('sort', sort)
+  if (filter)    params.set('filter', filter)
+  if (filterVal) params.set('filter_val', filter_val)
+
+  const queryString = params.toString()
+  const path = `/api/collections/${collectionId}/items/${queryString ? `?${queryString}` : ''}`
+  
+  return request('GET', path)
+}
+
+// POST add an item to a collection
+// Endpoint: POST /api/items/add/
+export async function addItem(collectionId, itemData) {
+  // Map frontend field names to backend expectations
+  const payload = {
+    ...itemData,
+    collection_id:  collectionId,
+    name:           itemData.title,
+    condition:      itemData.condition?.toLowerCase().replace(' ', '_') || 'good',
+    purchase_price: itemData.purchasePrice || 0,
+    current_value:  itemData.currentValue  || 0,
+    quantity:       1,
+  }
+  return request('POST', '/api/items/add/', payload)
+}
+
+// DELETE remove an item
+// Endpoint: DELETE /api/items/delete/:collectionId/:itemId/
+export async function deleteItem(collectionId, itemId) {
+  return request('DELETE', `/api/items/delete/${collectionId}/${itemId}/`)
+}

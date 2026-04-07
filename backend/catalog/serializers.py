@@ -14,11 +14,11 @@ class ItemSerializer(serializers.ModelSerializer):
 class CollectionSerializer(serializers.ModelSerializer):
     # This lets us see the actual items inside the collection
     items = ItemSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = Collection
         fields = [
-            'id', 'owner', 'name', 'description', 'category', 
+            'id', 'owner', 'name', 'description', 'category', 'collection_type',
             'created_at', 'updated_at', 'is_public', 'item_count', 
             'total_value', 'items'
         ]

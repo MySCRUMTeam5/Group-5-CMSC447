@@ -1,14 +1,112 @@
 import json
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db.models import Sum
 from rest_framework import viewsets
-from .models import User, Collection, Item, CollectionRating, DuplicateFlag
+from .models import (
+    User, Collection, Item, CollectionRating, DuplicateFlag,
+    VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
+    LegoSetItem, SportsCardItem, MusicItem, MovieItem
+)
 from .serializers import (
     UserSerializer, CollectionSerializer, ItemSerializer,
     CollectionRatingSerializer, DuplicateFlagSerializer
 )
+
+User = get_user_model()
+
+# ─── Maps collection_type to its model and accepted fields ───
+COLLECTION_TYPE_CONFIG = {
+    "video_games": {
+        "model": VideoGameItem,
+        "fields": ["platform", "genre", "completeness", "play_status"],
+    },
+    "trading_cards": {
+        "model": TradingCardItem,
+        "fields": ["series", "set_name", "card_number", "grade"],
+    },
+    "comics": {
+        "model": ComicItem,
+        "fields": ["publisher", "issue_title", "issue_number", "grade", "read_status"],
+    },
+    "funko_pops": {
+        "model": FunkoPopItem,
+        "fields": ["series", "box_number", "completeness", "exclusive"],
+    },
+    "lego_sets": {
+        "model": LegoSetItem,
+        "fields": ["series", "set_number", "completeness", "piece_count"],
+    },
+    "sports_cards": {
+        "model": SportsCardItem,
+        "fields": ["sport", "player_name", "card_number", "year", "grade"],
+    },
+    "music": {
+        "model": MusicItem,
+        "fields": ["artist", "album_title", "format", "genre"],
+    },
+    "movies": {
+        "model": MovieItem,
+        "fields": ["title", "format", "genre", "director", "watched_status"],
+    },
+}
+
+
+@csrf_exempt
+@require_http_methods(["POST", "GET"])
+def add_get_collections(request):
+    if request.method == "GET":
+        collections = Collection.objects.all()
+
+        data = []
+
+        for c in collections:
+            data.append({
+                "id" : c.id,
+                "name" : c.name,
+                "description" : c.description,
+                "category": c.category,
+                "type": c.collection_type,
+                "is_public": c.is_public,
+                "itemCount": c.item_count,
+                "totalValue": c.total_value,
+            })
+
+        return JsonResponse(data, safe=False)
+
+    elif request.method == "POST":
+        data = json.loads(request.body)
+
+        if "name" not in data:
+            return JsonResponse({"Error" : "Collection must have a name"}, status=400)
+
+        if request.user.is_authenticated:
+            user = request.user
+
+        else:
+            user = User.objects.first()
+
+        collection = Collection.objects.create(
+            owner=user,
+            name=data["name"],
+            description=data.get("description",""),
+            category=data.get("category", ""),
+            collection_type=data.get("type", "video_games"),
+            is_public=data.get("is_public", False)
+            )
+
+        return JsonResponse({
+            "id" : collection.id,
+            "name" : collection.name,
+            "description" : collection.description,
+            "category": collection.category,
+            "type": collection.collection_type,
+            "is_public": collection.is_public,
+            "itemCount": collection.item_count,
+            "totalValue": collection.total_value,
+            }, status=201)
 
 
 @csrf_exempt
@@ -16,13 +114,21 @@ from .serializers import (
 def add_item(request):
     try:
         data = json.loads(request.body)
+
         if "collection_id" not in data or "name" not in data:
             return JsonResponse({"error": "collection_id and name are required"}, status=400)
+
         try:
             collection = Collection.objects.get(id=data["collection_id"])
         except Collection.DoesNotExist:
             return JsonResponse({"error": "Collection not found"}, status=404)
 
+        # Clean up data
+        purchase_date = data.get("purchase_date")
+        if not purchase_date: # Handle empty string or None
+            purchase_date = None
+
+        # Create the base item (shared fields)
         item = Item.objects.create(
             collection=collection,
             name=data["name"],
@@ -31,21 +137,70 @@ def add_item(request):
             condition=data.get("condition", "good"),
             quantity=data.get("quantity", 1),
             barcode=data.get("barcode", ""),
-            purchase_price=data.get("purchase_price", 0),
-            current_value=data.get("current_value", 0),
-            purchase_date=data.get("purchase_date", None),
+            purchase_price=data.get("purchase_price") or 0,
+            current_value=data.get("current_value") or 0,
+            purchase_date=purchase_date,
             usage_status=data.get("usage_status", "stored"),
             listing_status=data.get("listing_status", "not_for_sale"),
-            asking_price=data.get("asking_price", 0),
+            asking_price=data.get("asking_price") or 0,
             is_special_edition=data.get("is_special_edition", False),
             edition_details=data.get("edition_details", ""),
         )
+
+        # Create the type-specific record based on the collection's type
+        type_data = {}
+        config = COLLECTION_TYPE_CONFIG.get(collection.collection_type)
+        if config:
+            type_fields = {}
+            for field in config["fields"]:
+                if field in data:
+                    type_fields[field] = data[field]
+            type_obj = config["model"].objects.create(item=item, **type_fields)
+            type_data = {field: getattr(type_obj, field) for field in config["fields"]}
 
         return JsonResponse({
             "message": "Item added successfully",
             "item": {
                 "id": item.id,
                 "collection_id": item.collection.id,
+                "collection_type": collection.collection_type,
+                "name": item.name,
+                "description": item.description,
+                "category": item.category,
+                "condition": item.condition,
+                "quantity": item.quantity,
+                "barcode": item.barcode,
+                "purchase_price": str(item.purchase_price),
+                "current_value": str(item.current_value),
+                "purchase_date": str(item.purchase_date) if item.purchase_date else None,
+                "usage_status": item.usage_status,
+                "listing_status": item.listing_status,
+                "asking_price": str(item.asking_price),
+                "is_special_edition": item.is_special_edition,
+                "edition_details": item.edition_details,
+                "created_at": item.created_at.isoformat(),
+                "type_attributes": type_data,
+            }
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@require_http_methods(["GET"])
+def get_items(request, collection_id):
+    try:
+        collection = Collection.objects.get(id=collection_id)
+        items = collection.items.all()
+
+        items_list = []
+        config = COLLECTION_TYPE_CONFIG.get(collection.collection_type)
+
+        for item in items:
+            item_data = {
+                "id": item.id,
                 "name": item.name,
                 "description": item.description,
                 "category": item.category,
@@ -62,12 +217,24 @@ def add_item(request):
                 "edition_details": item.edition_details,
                 "created_at": item.created_at.isoformat(),
             }
-        }, status=201)
 
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+            # Add type-specific fields if they exist
+            if config:
+                related_name = config["model"].__name__.lower()
+                try:
+                    type_obj = config["model"].objects.get(item=item)
+                    item_data["type_attributes"] = {
+                        field: getattr(type_obj, field) for field in config["fields"]
+                    }
+                except config["model"].DoesNotExist:
+                    item_data["type_attributes"] = {}
+
+            items_list.append(item_data)
+
+        return JsonResponse(items_list, safe=False, status=200)
+
+    except Collection.DoesNotExist:
+        return JsonResponse({"error": "Collection not found"}, status=404)
 
 
 @csrf_exempt
@@ -106,16 +273,76 @@ def get_collection_item_count(request, collection_id):
     except Collection.DoesNotExist:
         return JsonResponse({"error": "Collection not found"}, status=404)
 
+
 @require_http_methods(['GET'])
 def sort_filter_collection(request):
     if request.method != 'GET':
         return JsonResponse({"Error": "Method not allowed"}, status = 405)
-    
+
     sort = request.GET.get("sort")
-    
+
     filter_val = request.GET.get("filter")
 
-    sort_dict = {
+    item_type = request.GET.get("type")
+
+    VIDEO_GAMES_FILTER_FIELDS = {
+        "playStatus" : "play_status__iexact",
+        "platform" : "platform__iexact",
+        "genre" : "genre__iexact",
+        "completeness" : "completeness__iexact",
+        }
+
+    TRADING_CARDS_FILTER_FIELDS = {
+        "series" : "series__iexact",
+        "grade" : "grade__iexact"
+        }
+
+    COMICS_FILTER_FIELDS = {
+        "publisher" : "publisher__iexact",
+        "readStatus" : "read_status__iexact",
+        "grade" : "grade__iexact",
+        "readStatus" : "read_status__iexact"
+        }
+
+    FUNKO_FILTER_FIELDS = {
+        "series" : "series__iexact",
+        "completeness" : "completeness__iexact",
+        "exclusive" : "exclusive__iexact"
+        }
+
+    LEGO_FILTER_FIELDS = {
+        "series" : "series__iexact",
+        "completeness" : "completeness__iexact"
+        }
+
+    SPORTS_CARDS_FILTER_FIELDS = {
+        "sport" : "sport__iexact",
+        "grade" : "grade__iexact"
+    }
+
+    MUSIC_FILTER_FIELDS = {
+        "format" : "format__iexact",
+        "genre" : "genre__iexact"
+    }
+
+    MOVIES_FILTER_FIELDS = {
+        "watchedStatus" : "watched_status__iexact",
+        "format" : "format__iexact",
+        "genre" : "genre__iexact"
+    }
+
+    FILTER_ITEM_TYPES = {
+        "games" : VIDEO_GAMES_FILTER_FIELDS,
+        "trading_cards" : TRADING_CARDS_FILTER_FIELDS,
+        "comics" : COMICS_FILTER_FIELDS,
+        "funko" : FUNKO_FILTER_FIELDS,
+        "lego" : LEGO_FILTER_FIELDS,
+        "sports_cards" : SPORTS_CARDS_FILTER_FIELDS,
+        "music" : MUSIC_FILTER_FIELDS,
+        "movies" : MOVIES_FILTER_FIELDS
+    }
+
+    SORT_ITEMS = {
         "p_price_ascend" : "purchase_price",
         "p_price_descend" : "-purchase_price",
         "alpha_ascend" : "name",
@@ -124,30 +351,23 @@ def sort_filter_collection(request):
         "date_descend" : "-purchase_date"
     }
 
-    #Right now, doing filter by preset buttons, may move to user input later
-    #only doing one filter rn
-    filter_dict = {
-        "played" : ("usage_status", Item.UsageStatus.STORED),
-        "curr_playing" : ("usage_status", Item.UsageStatus.IN_USE),
-        "unplayed" : ("usage_status", Item.UsageStatus.NOT_USED),
-        "name" : ("name__icontains", request.GET.get("value"))
-    }
-
     data = Item.objects.all()
-    
+
     if sort:
-        sort_by = sort_dict.get(sort)
+        sort_by = SORT_ITEMS.get(sort)
         if not sort_by:
             return JsonResponse({"Error" : "Not a valid sort option"}, status=404)
         data = data.order_by(sort_by)
-    
+
     if filter_val:
-        filter_by = filter_dict.get(filter_val)
+        filter_type = FILTER_ITEM_TYPES.get(item_type)
+
+        filter_by = filter_type.get(filter_val)
+
         if not filter_by:
             return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
-        lookup, value = filter_by
-        data = Item.objects.filter(**{lookup: value})
-    
+        data = Item.objects.filter(**{filter_by : value})
+
     return JsonResponse(list(data.values()), safe=False, status=200)
 
 

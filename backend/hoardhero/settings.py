@@ -122,8 +122,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STATIC_URL = 'static/'
 
+CORS_ALLOW_CREDENTIALS = True
+
 # Allow React (port 5173) to talk to Django
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CSRF_TRUSTED_ORIGNS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
