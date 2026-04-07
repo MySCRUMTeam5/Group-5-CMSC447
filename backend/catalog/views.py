@@ -17,10 +17,17 @@ def add_item(request):
         data = json.loads(request.body)
         if "collection_id" not in data or "name" not in data:
             return JsonResponse({"error": "collection_id and name are required"}, status=400)
+            
         try:
             collection = Collection.objects.get(id=data["collection_id"])
-        except Collection.DoesNotExist:
-            return JsonResponse({"error": "Collection not found"}, status=404)
+        except (Collection.DoesNotExist, ValueError):
+            return JsonResponse({"error": "Valid Collection ID is required"}, status=404)
+            
+        # Clean up data
+        purchase_date = data.get("purchase_date")
+        if not purchase_date: # Handle empty string or None
+            purchase_date = None
+
         item = Item.objects.create(
             collection=collection,
             name=data["name"],
@@ -29,12 +36,12 @@ def add_item(request):
             condition=data.get("condition", "good"),
             quantity=data.get("quantity", 1),
             barcode=data.get("barcode", ""),
-            purchase_price=data.get("purchase_price", 0),
-            current_value=data.get("current_value", 0),
-            purchase_date=data.get("purchase_date", None),
+            purchase_price=data.get("purchase_price") or 0,
+            current_value=data.get("current_value") or 0,
+            purchase_date=purchase_date,
             usage_status=data.get("usage_status", "stored"),
             listing_status=data.get("listing_status", "not_for_sale"),
-            asking_price=data.get("asking_price", 0),
+            asking_price=data.get("asking_price") or 0,
             is_special_edition=data.get("is_special_edition", False),
             edition_details=data.get("edition_details", ""),
         )
@@ -63,7 +70,8 @@ def add_item(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": f"Internal Server Error: {str(e)}"}, status=500)
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()

@@ -15,6 +15,6 @@ router.register(r'ratings', CollectionRatingViewSet)
 router.register(r'duplicates', DuplicateFlagViewSet)
 
 urlpatterns = [
+    path("items/add/", views.add_item, name="add_item"),
     path('', include(router.urls)),
-    path("items/add/", views.add_item, name="add_item")
 ]
