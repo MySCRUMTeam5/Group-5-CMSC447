@@ -123,6 +123,11 @@ def add_item(request):
         except Collection.DoesNotExist:
             return JsonResponse({"error": "Collection not found"}, status=404)
 
+        # Clean up data
+        purchase_date = data.get("purchase_date")
+        if not purchase_date: # Handle empty string or None
+            purchase_date = None
+
         # Create the base item (shared fields)
         item = Item.objects.create(
             collection=collection,
@@ -132,12 +137,12 @@ def add_item(request):
             condition=data.get("condition", "good"),
             quantity=data.get("quantity", 1),
             barcode=data.get("barcode", ""),
-            purchase_price=data.get("purchase_price", 0),
-            current_value=data.get("current_value", 0),
-            purchase_date=data.get("purchase_date", None),
+            purchase_price=data.get("purchase_price") or 0,
+            current_value=data.get("current_value") or 0,
+            purchase_date=purchase_date,
             usage_status=data.get("usage_status", "stored"),
             listing_status=data.get("listing_status", "not_for_sale"),
-            asking_price=data.get("asking_price", 0),
+            asking_price=data.get("asking_price") or 0,
             is_special_edition=data.get("is_special_edition", False),
             edition_details=data.get("edition_details", ""),
         )
@@ -284,7 +289,7 @@ def sort_filter_collection(request):
         "playStatus" : "play_status__iexact",
         "platform" : "platform__iexact",
         "genre" : "genre__iexact",
-        "completeness" : "completeness,__iexact",
+        "completeness" : "completeness__iexact",
         }
 
     TRADING_CARDS_FILTER_FIELDS = {
@@ -307,7 +312,7 @@ def sort_filter_collection(request):
 
     LEGO_FILTER_FIELDS = {
         "series" : "series__iexact",
-        "completeness" : "completness__iexact"
+        "completeness" : "completeness__iexact"
         }
 
     SPORTS_CARDS_FILTER_FIELDS = {

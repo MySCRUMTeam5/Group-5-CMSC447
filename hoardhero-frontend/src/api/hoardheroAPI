@@ -73,35 +73,38 @@ export async function createCollection({ name, type }) {
 
 // ── Items ─────────────────────────────────────────────────────────────────
 
-// GET all items, optionally filtered by collection
-// Endpoint: GET /api/items/?collection=:id
+// GET all items for a specific collection
+// Endpoint: GET /api/collections/:id/items/
 export async function getItems(collectionId, collectionType, { sort, filter, filterVal } = {}) {
   const params = new URLSearchParams()
-  if (collectionId)   params.set('collection', collectionId)
-  if (collectionType) params.set('type', collectionType)
-  if (sort)           params.set('sort', sort)
-  if (filter)         params.set('filter', filter)
-  if (filterVal)      params.set('filter_val', filterVal)
-  return request('GET', `/api/items/?${params.toString()}`)
+  if (sort)      params.set('sort', sort)
+  if (filter)    params.set('filter', filter)
+  if (filterVal) params.set('filter_val', filter_val)
+
+  const queryString = params.toString()
+  const path = `/api/collections/${collectionId}/items/${queryString ? `?${queryString}` : ''}`
+  
+  return request('GET', path)
 }
 
 // POST add an item to a collection
-// Endpoint: POST /api/items/
+// Endpoint: POST /api/items/add/
 export async function addItem(collectionId, itemData) {
-  return request('POST', '/api/items/', {
-    collection:     collectionId,
+  // Map frontend field names to backend expectations
+  const payload = {
+    ...itemData,
+    collection_id:  collectionId,
     name:           itemData.title,
     condition:      itemData.condition?.toLowerCase().replace(' ', '_') || 'good',
     purchase_price: itemData.purchasePrice || 0,
     current_value:  itemData.currentValue  || 0,
-    barcode:        itemData.barcode || '',
-    description:    itemData.description || '',
     quantity:       1,
-  })
+  }
+  return request('POST', '/api/items/add/', payload)
 }
 
 // DELETE remove an item
-// Endpoint: DELETE /api/items/:itemId/
+// Endpoint: DELETE /api/items/delete/:collectionId/:itemId/
 export async function deleteItem(collectionId, itemId) {
-  return request('DELETE', `/api/items/${itemId}/`)
+  return request('DELETE', `/api/items/delete/${collectionId}/${itemId}/`)
 }
