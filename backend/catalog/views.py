@@ -373,6 +373,15 @@ def sort_filter_collection(request):
 
     return JsonResponse(list(data.values()), safe=False, status=200)
 
+BARCODE_TYPES = {
+    "games",
+    "comics",
+    "funko",
+    "lego",
+    "music",
+    "movies"
+}
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def barcode(request):
@@ -390,6 +399,11 @@ def barcode(request):
 
     if not decoded_code:
         return JsonResponse({"error": "no barcode found"}, status=400)
+
+    item_type = request.POST.get("item_type")
+    if not item_type or item_type not in BARCODE_TYPES:
+        return JsonResponse({"error": "Invalid or missing item_type"}, status=400)
+        
 
     barcode = decoded_code[0].data.decode("utf-8")
 
