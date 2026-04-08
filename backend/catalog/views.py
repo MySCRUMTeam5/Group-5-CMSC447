@@ -1,10 +1,13 @@
 import json
+import requests
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db.models import Sum
 from rest_framework import viewsets
+from pyzbar.pyzbar import decode
+from PIL import Image, UnidentifiedImageError
 from .models import (
     User, Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
@@ -369,6 +372,52 @@ def sort_filter_collection(request):
         data = Item.objects.filter(**{filter_by : value})
 
     return JsonResponse(list(data.values()), safe=False, status=200)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def barcode(request):
+    image_file = request.FILES.get("image")
+
+    if not image_file:
+        return JsonResponse({"error": "nothing uploaded"}, status=400)
+    
+    try:
+        image = Image.open(image_file)
+    except UnidentifiedImageError:
+        return JsonResponse({"error": "Invalid file type"}, status=400)
+
+    decoded_code = decode(image)
+
+    if not decoded_code:
+        return JsonResponse({"error": "no barcode found"}, status=400)
+
+    barcode = decoded_code[0].data.decode("utf-8")
+
+    url = f"https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
+   
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except Exception:
+        return JsonResponse({"error": "Failed to fetch item"}, status=500)
+    
+
+    if data.get("code") != "OK" or data.get("total", 0) == 0:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    
+    items = data.get("items", [])
+    if not items:
+        return JsonResponse({"error": "Corrupted data"}, status=404)
+    
+    item = items[0]
+
+    result = {
+        "name": item.get("title"),
+        "description" : item.get("description")
+    }
+
+    return JsonResponse(result)
 
 
 class UserViewSet(viewsets.ModelViewSet):
