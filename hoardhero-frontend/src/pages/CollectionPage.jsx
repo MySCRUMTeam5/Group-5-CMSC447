@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Navbar from '../components/Navbar'
 import { getConfig, BADGE_COLORS, CONDITION_COLORS } from '../config/collectionConfig'
-import { getItems, addItem, deleteItem } from '../api/hoardheroAPI'
+import { getItems, addItem, updateItem, deleteItem } from '../api/hoardheroAPI'
 import './CollectionPage.css'
 
 const SORT_OPTIONS = [
@@ -57,6 +57,7 @@ export default function CollectionPage({ navigate, collection }) {
   const [showAddModal,   setShowAddModal]   = useState(false)
   const [confirmDelete,  setConfirmDelete]  = useState(null)
   const [newItem,        setNewItem]        = useState({})
+  const [editItem,       setEditItem]       = useState(null)
   const [formError,      setFormError]      = useState('')
   const [expandedTitles, setExpandedTitles] = useState({})
   const [loading,        setLoading]        = useState(true)
@@ -71,22 +72,41 @@ export default function CollectionPage({ navigate, collection }) {
     fetchItems()
   }, [col.id])
 
+  // Convert snake_case to camelCase
+  const toCamel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+
   const fetchItems = async () => {
     try {
       setLoading(true)
       setPageError('')
       const data = await getItems(col.id, col.type)
       // Map Django Item fields to frontend shape
-      const mapped = (Array.isArray(data) ? data : []).map(item => ({
-        id:            item.id,
-        title:         item.name,
-        condition:     item.condition,
-        purchasePrice: parseFloat(item.purchase_price) || 0,
-        currentValue:  parseFloat(item.current_value)  || 0,
-        dateAdded:     item.created_at?.slice(0, 10) || '',
-        // Type-specific fields spread in
-        ...item,
-      }))
+      const mapped = (Array.isArray(data) ? data : []).map(item => {
+        // Normalize condition from snake_case to Title Case (e.g. "near_mint" -> "Near Mint")
+        const normCond = item.condition
+          ? item.condition.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+          : 'Good'
+
+        // Convert type_attributes keys from snake_case to camelCase
+        // Backend sends: { play_status, set_name, ... }
+        // Frontend expects: { playStatus, setName, ... }
+        const typeAttrs = item.type_attributes || {}
+        const camelAttrs = {}
+        for (const [key, val] of Object.entries(typeAttrs)) {
+          camelAttrs[toCamel(key)] = val
+        }
+
+        return {
+          ...item,
+          ...camelAttrs,
+          id:            item.id,
+          title:         item.name,
+          condition:     normCond,
+          purchasePrice: parseFloat(item.purchase_price) || 0,
+          currentValue:  parseFloat(item.current_value)  || 0,
+          dateAdded:     item.created_at?.slice(0, 10) || '',
+        }
+      })
       setItems(mapped)
     } catch (err) {
       setPageError('Could not load items. Is the Django server running?')
@@ -180,6 +200,14 @@ export default function CollectionPage({ navigate, collection }) {
     return Object.values(exactDupeMap).filter(g => g.length > 1).length
   }, [exactDupeMap])
 
+  // ── Open edit modal for a specific item ───────────────────────────────────
+  const openEditModal = (item) => {
+    setEditItem(item)
+    setNewItem({ ...item })
+    setFormError('')
+    setShowAddModal(true)
+  }
+
   // ── Add item ──────────────────────────────────────────────────────────────
   const handleAddItem = async () => {
     if (!newItem.title?.trim()) { setFormError('Title is required.'); return }
@@ -200,6 +228,23 @@ export default function CollectionPage({ navigate, collection }) {
       setShowAddModal(false)
     } catch (err) {
       setFormError(err.message || 'Failed to add item. Please try again.')
+      console.error(err)
+    }
+  }
+
+  // ── Edit item (update) ────────────────────────────────────────────────────
+  const handleEditItem = async () => {
+    if (!newItem.title?.trim()) { setFormError('Title is required.'); return }
+    try {
+      setFormError('')
+      await updateItem(col.id, editItem.id, newItem)
+      // Update local state for just this specific item
+      setItems(prev => prev.map(i => i.id === editItem.id ? { ...i, ...newItem } : i))
+      setNewItem({})
+      setEditItem(null)
+      setShowAddModal(false)
+    } catch (err) {
+      setFormError(err.message || 'Failed to update item. Please try again.')
       console.error(err)
     }
   }
@@ -324,7 +369,7 @@ export default function CollectionPage({ navigate, collection }) {
                 ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
             </div>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+            <button className="btn btn-primary" onClick={() => { setEditItem(null); setNewItem({}); setShowAddModal(true) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 5v14M5 12h14"/>
               </svg>
@@ -452,7 +497,7 @@ export default function CollectionPage({ navigate, collection }) {
                   return (
                     <>
                       {/* ── Main row ── */}
-                      <tr key={item.id} className="item-row" style={{ animationDelay: `${i * 30}ms` }}>
+                      <tr key={item.id} className="item-row" style={{ animationDelay: `${i * 30}ms`, cursor: 'pointer' }} onClick={() => openEditModal(item)}>
                         {config.columns.map(c => (
                           <td key={c.key}>
                             {/* Title cell gets badges + variant toggle */}
@@ -470,7 +515,7 @@ export default function CollectionPage({ navigate, collection }) {
                                   {variants && (
                                     <button
                                       className="variant-arrow"
-                                      onClick={() => toggleExpanded(item.title)}
+                                      onClick={(e) => { e.stopPropagation(); toggleExpanded(item.title) }}
                                       title="This title has multiple versions — click to expand"
                                     >
                                       <svg
@@ -493,7 +538,7 @@ export default function CollectionPage({ navigate, collection }) {
                         <td>
                           <button
                             className="btn btn-danger btn-sm delete-btn"
-                            onClick={() => setConfirmDelete({ item, isExact: count > 1 })}
+                            onClick={(e) => { e.stopPropagation(); setConfirmDelete({ item, isExact: count > 1 }) }}
                             title="Delete item"
                           >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -530,7 +575,7 @@ export default function CollectionPage({ navigate, collection }) {
                                 </thead>
                                 <tbody>
                                   {titleVariants(item).map(v => (
-                                    <tr key={v.id} className="variant-item-row">
+                                    <tr key={v.id} className="variant-item-row" style={{ cursor: 'pointer' }} onClick={() => openEditModal(v)}>
                                       {config.columns.filter(c => !c.primary).map(c => (
                                         <td key={c.key}>{renderCell(v, c)}</td>
                                       ))}
@@ -542,7 +587,7 @@ export default function CollectionPage({ navigate, collection }) {
                                       <td>
                                         <button
                                           className="btn btn-danger btn-sm delete-btn"
-                                          onClick={() => setConfirmDelete({ item: v, isExact: exactCount(v) > 1 })}
+                                          onClick={(e) => { e.stopPropagation(); setConfirmDelete({ item: v, isExact: exactCount(v) > 1 }) }}
                                         >
                                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <polyline points="3 6 5 6 21 6"/>
@@ -571,11 +616,11 @@ export default function CollectionPage({ navigate, collection }) {
 
       {/* ── Add Item Modal ── */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+        <div className="modal-overlay" onClick={() => { setShowAddModal(false); setEditItem(null); setNewItem({}) }}>
           <div className="modal modal-wide" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">Add Item to {col.name}</h2>
-              <button className="modal-close" onClick={() => { setShowAddModal(false); setFormError('') }}>×</button>
+              <h2 className="modal-title">{editItem ? 'Edit Item' : `Add Item to ${col.name}`}</h2>
+              <button className="modal-close" onClick={() => { setShowAddModal(false); setEditItem(null); setNewItem({}); setFormError('') }}>×</button>
             </div>
             {formError && <div className="form-error">{formError}</div>}
             <div className="form-grid">
@@ -605,8 +650,8 @@ export default function CollectionPage({ navigate, collection }) {
               ))}
             </div>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => { setShowAddModal(false); setFormError('') }}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleAddItem}>Add Item</button>
+              <button className="btn btn-secondary" onClick={() => { setShowAddModal(false); setEditItem(null); setNewItem({}); setFormError('') }}>Cancel</button>
+              <button className="btn btn-primary" onClick={editItem ? handleEditItem : handleAddItem}>{editItem ? 'Save Changes' : 'Add Item'}</button>
             </div>
           </div>
         </div>
