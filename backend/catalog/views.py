@@ -20,6 +20,7 @@ from .serializers import (
 
 User = get_user_model()
 
+
 # ─── Maps collection_type to its model and accepted fields ───
 COLLECTION_TYPE_CONFIG = {
     "video_games": {
@@ -377,6 +378,124 @@ BARCODE_TYPES = {
         i for i in COLLECTION_TYPE_CONFIG.keys()
         if i not in ["trading_cards", "sports_cards"]
 }
+
+def map_fields(item_type, item):
+    if item_type == "movies":
+        return {
+            "title": item.get("title"),
+            "genre": None,
+            "format": None,
+            "director": None,
+            "watched_status": None,
+        }
+
+    elif item_type == "music":
+        return {
+            "album_title": item.get("title"),
+            "artist": None,
+            "genre": None,
+            "format": None,
+        }
+
+    elif item_type == "video_games":
+        return {
+            "platform": None,
+            "genre": None,
+            "completeness": None,
+            "play_status": None,
+        }
+
+    elif item_type == "lego_sets":
+        return {
+            "series": item.get("brand"),
+            "set_number": item.get("model"),
+            "piece_count": None,
+            "completeness": None,
+        }
+
+    elif item_type == "funko_pops":
+        return {
+            "series": item.get("brand"),
+            "box_number": item.get("model"),
+            "exclusive": None,
+            "completeness": None,
+        }
+
+    elif item_type in ["comics", "books"]:
+        return {
+            "publisher": item.get("publisher"),
+            "issue_title": item.get("title"),
+            "issue_number": None,
+            "grade": None,
+            "read_status": None,
+        }
+
+    return {}
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def barcode(request):
+    image_file = request.FILES.get("image")
+
+    if not image_file:
+        return JsonResponse({"error": "nothing uploaded"}, status=400)
+    
+    try:
+        image = Image.open(image_file)
+    except UnidentifiedImageError:
+        return JsonResponse({"error": "Invalid file type"}, status=400)
+
+    decoded_code = decode(image)
+
+    if not decoded_code:
+        return JsonResponse({"error": "no barcode found"}, status=400)
+
+    item_type = request.POST.get("item_type")
+    if not item_type or item_type not in BARCODE_TYPES:
+        return JsonResponse({"error": "Invalid or missing item_type"}, status=400)
+        
+
+    barcode = decoded_code[0].data.decode("utf-8")
+
+    url = f"https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
+   
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except Exception:
+        return JsonResponse({"error": "Failed to fetch item"}, status=500)
+    
+
+    if data.get("code") != "OK" or data.get("total", 0) == 0:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    
+    items = data.get("items", [])
+    if not items:
+        return JsonResponse({"error": "Corrupted data"}, status=404)
+    
+    item = items[0]
+
+    fields = COLLECTION_TYPE_CONFIG[item_type]["fields"]
+
+    filtered_item = {field: item.get(field) for field in fields}    
+
+    result = {
+        "name": item.get("title"),
+        "description": item.get("description"),
+        "image": item.get("images", [None])[0],
+        "barcode": barcode,
+        "fields": map_fields(item_type, filtered_item)
+    }
+
+    return JsonResponse(result)
+
+BARCODE_TYPES = {
+        i for i in COLLECTION_TYPE_CONFIG.keys()
+        if i not in ["trading_cards", "sports_cards"]
+}
+
 
 def map_fields(item_type, item):
     if item_type == "movies":
