@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, CollectionViewSet, ItemViewSet,
-    CollectionRatingViewSet, DuplicateFlagViewSet
+    CollectionRatingViewSet, DuplicateFlagViewSet, 
+    barcode
 )
 from . import views
 
@@ -25,5 +26,6 @@ urlpatterns = [
         name="get_collection_item_count",
     ),
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
+    path("barcode/", barcode, name="barcode"),
     path("", include(router.urls))
 ]
