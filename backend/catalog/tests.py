@@ -11,19 +11,20 @@ class TestFilterNormal(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="testpass123")
-        self.collection = Collection.objects.create(name="Pokemon", owner=self.user)
+        self.collection = Collection.objects.create(collection_type="video_games",name="Pokemon", owner=self.user)
 
-        Item.objects.create(collection=self.collection, name="Fire Red", usage_status=Item.UsageStatus.STORED)
-        Item.objects.create(collection=self.collection, name="Silver", usage_status=Item.UsageStatus.IN_USE)
-        Item.objects.create(collection=self.collection, name="Crystal", usage_status=Item.UsageStatus.NOT_USED)
-        Item.objects.create(collection=self.collection, name="Gold", usage_status=Item.UsageStatus.STORED)
-        Item.objects.create(collection=self.collection, name="Leaf Green", usage_status=Item.UsageStatus.IN_USE)
-        Item.objects.create(collection=self.collection, name="Yellow", usage_status=Item.UsageStatus.NOT_USED)
-    
+        fire_red = Item.objects.create(collection=self.collection, name="Fire Red", usage_status=Item.UsageStatus.STORED)
+        silver = Item.objects.create(collection=self.collection, name="Silver", usage_status=Item.UsageStatus.IN_USE)
+        crystal = Item.objects.create(collection=self.collection, name="Crystal", usage_status=Item.UsageStatus.NOT_USED)
+        gold = Item.objects.create(collection=self.collection, name="Gold", usage_status=Item.UsageStatus.STORED)
+        leaf_green = Item.objects.create(collection=self.collection, name="Leaf Green", usage_status=Item.UsageStatus.IN_USE)
+        yellow = Item.objects.create(collection=self.collection, name="Yellow", usage_status=Item.UsageStatus.NOT_USED)
+
     def test_filter_red(self):
         request = self.factory.get("/items/?filter=name&value=red")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
+        print("FILTER DATA: ", data)
 
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]["name"], "Fire Red")
@@ -40,7 +41,8 @@ class TestFilterNormal(TestCase):
         self.assertEqual(data[3]["name"], "Fire Red")
 
     def test_filter_stored(self):
-        request = self.factory.get("items/?filter=played")
+        print("TEST FILTER: PLAYED")
+        request = self.factory.get("items/?filter=usage_status&value=stored")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
 
@@ -49,7 +51,8 @@ class TestFilterNormal(TestCase):
         self.assertEqual(data[1]["name"], "Fire Red")
 
     def test_filter_in_use(self):
-        request = self.factory.get("items/?filter=curr_playing")
+        print("TEST FILTER: PLAYING")
+        request = self.factory.get("items/?filter=usage_status&value=in_use")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
 
@@ -58,7 +61,8 @@ class TestFilterNormal(TestCase):
         self.assertEqual(data[1]["name"], "Silver")
     
     def test_filter_not_used(self):
-        request = self.factory.get("items/?filter=unplayed")
+        print("TEST FILTER: UNPLAYED")
+        request = self.factory.get("items/?filter=usage_status&value=not_used")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
 
@@ -70,39 +74,45 @@ class TestSortEmptyColl(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="testpass123")
-        self.collection = Collection.objects.create(name="Pokemon", owner=self.user)
+        self.collection = Collection.objects.create(collection_type="video_games",name="Pokemon", owner=self.user)
 
     def test_sort_a_z_empty(self):
+        print("TEST SORT: ALPHA ASCEND")
         request = self.factory.get("/items/?sort=alpha_ascend")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
         self.assertEqual(data, [])
 
     def test_sort_z_a_empty(self):
+        print("TEST SORT: ALPHA DESCEND")
         request = self.factory.get("/items/?sort=alpha_descend")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
         self.assertEqual(data, [])
 
     def test_sort_date_ascend_empty(self):
+        print("TEST SORT: DATE ASCEND")
         request = self.factory.get("/items/?sort=date_ascend")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
         self.assertEqual(data, [])
 
     def test_sort_date_descend_empty(self):
+        print("TEST SORT: DATE DESCEND")
         request = self.factory.get("/items/?sort=date_descend")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
         self.assertEqual(data, [])
 
     def test_sort_price_ascend_empty(self):
+        print("TEST SORT: PRICE ASCEND")
         request = self.factory.get("/items/?sort=p_price_ascend")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
         self.assertEqual(data, [])
 
     def test_sort_price_descend_empty(self):
+        print("TEST SORT: PRICE DESCEND")
         request = self.factory.get("/items/?sort=p_price_descend")
         response = sort_filter_collection(request)
         data = json.loads(response.content)
@@ -160,7 +170,7 @@ class TestSortPriceNormal(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="testpass123")
-        self.collection = Collection.objects.create(name="Pokemon", owner=self.user)
+        self.collection = Collection.objects.create(collection_type="video_games",name="Pokemon", owner=self.user)
 
         Item.objects.create(collection=self.collection, name="Fire Red", purchase_price=19.99)
         Item.objects.create(collection=self.collection, name="Silver", purchase_price=9.99)
@@ -189,7 +199,7 @@ class TestSortAlphaNormal(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="testpass123")
-        self.collection = Collection.objects.create(name="Pokemon", owner=self.user)
+        self.collection = Collection.objects.create(collection_type="video_games",name="Pokemon", owner=self.user)
 
         Item.objects.create(collection=self.collection, name="Fire Red")
         Item.objects.create(collection=self.collection, name="Silver")
@@ -218,7 +228,7 @@ class TestSortDateNormal(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.user = User.objects.create_user(username="testuser", password="testpass123")
-        self.collection = Collection.objects.create(name="Pokemon", owner=self.user)
+        self.collection = Collection.objects.create(collection_type="video_games",name="Pokemon", owner=self.user)
 
         Item.objects.create(collection=self.collection, name="Fire Red", purchase_date=date(2025, 8, 10))
         Item.objects.create(collection=self.collection, name="Silver", purchase_date=date(2025, 7, 10))

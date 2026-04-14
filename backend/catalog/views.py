@@ -281,9 +281,17 @@ def sort_filter_collection(request):
 
     sort = request.GET.get("sort")
 
-    filter_val = request.GET.get("filter")
+    filter_field = request.GET.get("filter")
+
+    filter_value = request.GET.get("value")
 
     item_type = request.GET.get("type")
+
+    GENERAL_FILTER_FIELDS = {
+        "name" : "name__icontains",
+        "category" : "category__iexact",
+        "usage_status" : "usage_status__iexact",
+    }
 
     VIDEO_GAMES_FILTER_FIELDS = {
         "playStatus" : "play_status__iexact",
@@ -332,7 +340,7 @@ def sort_filter_collection(request):
     }
 
     FILTER_ITEM_TYPES = {
-        "games" : VIDEO_GAMES_FILTER_FIELDS,
+        "video_games" : VIDEO_GAMES_FILTER_FIELDS,
         "trading_cards" : TRADING_CARDS_FILTER_FIELDS,
         "comics" : COMICS_FILTER_FIELDS,
         "funko" : FUNKO_FILTER_FIELDS,
@@ -359,14 +367,21 @@ def sort_filter_collection(request):
             return JsonResponse({"Error" : "Not a valid sort option"}, status=404)
         data = data.order_by(sort_by)
 
-    if filter_val:
-        filter_type = FILTER_ITEM_TYPES.get(item_type)
+    if filter_field and filter_value:
+        filter_by = GENERAL_FILTER_FIELDS.get(filter_field)
+        print("FILTER BY (ITEM TYPE): ", filter_by)
 
-        filter_by = filter_type.get(filter_val)
+        if filter_by is None and item_type:
+            type_filters = FILTER_ITEM_TYPES.get(item_type)
+            print("TYPE FILTERS: ", type_filters)
 
-        if not filter_by:
+            if type_filters:
+                filter_by = filter_type.get(filter_val)
+                print("FILTER BY (FILTER TYPE): ", filter_by)
+
+        if filter_by is None:
             return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
-        data = Item.objects.filter(**{filter_by : value})
+        data = Item.objects.filter(**{filter_by : filter_value})
 
     return JsonResponse(list(data.values()), safe=False, status=200)
 
