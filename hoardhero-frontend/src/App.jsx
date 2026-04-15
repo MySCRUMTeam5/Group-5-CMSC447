@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage'
 import CollectionPage from './pages/CollectionPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -15,26 +16,29 @@ function App() {
       setAuthPage(page)
       return
     }
+
     setCurrentPage(page)
-    if (data) setSelectedCollection(data)
+
+    if (page === 'collection') {
+      setSelectedCollection(data)
+    }
   }
 
   return (
     <div className="app">
-      {/* Unauthenticated: show sign-in or sign-up */}
       <SignedOut>
         {authPage === 'signin' && <SignInPage navigate={navigate} />}
         {authPage === 'signup' && <SignUpPage navigate={navigate} />}
       </SignedOut>
 
-      {/* Authenticated: show the main app */}
       <SignedIn>
-        {currentPage === 'home' && (
-          <HomePage navigate={navigate} />
-        )}
+        {currentPage === 'home' && <HomePage navigate={navigate} />}
+
         {currentPage === 'collection' && (
           <CollectionPage navigate={navigate} collection={selectedCollection} />
         )}
+
+        {currentPage === 'profile' && <ProfilePage navigate={navigate} />}
       </SignedIn>
     </div>
   )
