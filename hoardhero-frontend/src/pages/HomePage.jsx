@@ -4,14 +4,43 @@ import { COLLECTION_TYPES } from '../config/collectionConfig'
 import { getCollections, createCollection, deleteCollection } from '../api/hoardheroAPI'
 import './HomePage.css'
 
+// ── Single source of truth for type mapping ───────────────────────────────────
+// Django → frontend (used when reading collections from the server)
+const DJANGO_TO_FRONTEND_TYPE = {
+  'video_games': 'games',
+  'trading_cards': 'trading_cards',
+  'comics': 'comics',
+  'funko_pops': 'funko',
+  'lego_sets': 'lego',
+  'sports_cards': 'sports_cards',
+  'music': 'music',
+  'movies': 'movies',
+  // Pass-throughs: if the frontend value somehow comes back directly, handle it
+  'games': 'games',
+  'funko': 'funko',
+  'lego': 'lego',
+}
+
+// Frontend → Django (used when sending a new collection to the server)
+const FRONTEND_TO_DJANGO_TYPE = {
+  'games': 'video_games',
+  'trading_cards': 'trading_cards',
+  'comics': 'comics',
+  'funko': 'funko_pops',
+  'lego': 'lego_sets',
+  'sports_cards': 'sports_cards',
+  'music': 'music',
+  'movies': 'movies',
+}
+
 export default function HomePage({ navigate }) {
   const [collections, setCollections] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
-  const [newCol, setNewCol]             = useState({ name: '', type: 'games' })
-  const [loaded, setLoaded]             = useState(false)
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState('')
-  const [addError, setAddError]         = useState('')
+  const [newCol, setNewCol] = useState({ name: '', type: 'games' })
+  const [loaded, setLoaded] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [addError, setAddError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
 
   // ── Load collections on mount ─────────────────────────────────────────
@@ -24,30 +53,18 @@ export default function HomePage({ navigate }) {
       setLoading(true)
       setError('')
       const data = await getCollections()
-      // Map Django response fields to frontend shape
       const mapped = (Array.isArray(data) ? data : data.results || []).map(col => {
-        // Django uses 'video_games', frontend config uses 'games' etc.
-        // Map Django collection_type to frontend type value
-        const typeMap = {
-          'video_games':   'games',
-          'trading_cards': 'trading_cards',
-          'comics':        'comics',
-          'funko_pops':    'funko',
-          'lego_sets':     'lego',
-          'sports_cards':  'sports_cards',
-          'music':         'music',
-          'movies':        'movies',
-        }
+        // Backend sends "type" field containing the Django value (e.g. "video_games")
         const serverType = col.type || col.collection_type
-        const frontendType = typeMap[serverType] || serverType
+        const frontendType = DJANGO_TO_FRONTEND_TYPE[serverType] ?? serverType
         const type = COLLECTION_TYPES.find(t => t.value === frontendType)
         return {
-          id:         col.id,
-          name:       col.name,
-          type:       frontendType,
-          itemCount:  col.itemCount || col.item_count || 0,
+          id: col.id,
+          name: col.name,
+          type: frontendType,
+          itemCount: col.itemCount || col.item_count || 0,
           totalValue: parseFloat(col.totalValue || col.total_value) || 0,
-          icon:       type?.icon || '📦',
+          icon: type?.icon || '📦',
         }
       })
       setCollections(mapped)
@@ -65,27 +82,19 @@ export default function HomePage({ navigate }) {
     if (!newCol.name.trim()) return
     try {
       setAddError('')
-      // Map frontend type to Django collection_type
-      const typeMap = {
-        'games':        'video_games',
-        'trading_cards':'trading_cards',
-        'comics':       'comics',
-        'funko':        'funko_pops',
-        'lego':         'lego_sets',
-        'sports_cards': 'sports_cards',
-        'music':        'music',
-        'movies':       'movies',
-      }
-      const djangoType = typeMap[newCol.type] || newCol.type
+      const djangoType = FRONTEND_TO_DJANGO_TYPE[newCol.type] ?? newCol.type
       const data = await createCollection({ name: newCol.name, type: djangoType })
-      const type = COLLECTION_TYPES.find(t => t.value === newCol.type)
+      // Use the type the server echoed back so local state always matches DB
+      const savedServerType = data.type || data.collection_type || djangoType
+      const savedFrontendType = DJANGO_TO_FRONTEND_TYPE[savedServerType] ?? newCol.type
+      const type = COLLECTION_TYPES.find(t => t.value === savedFrontendType)
       const created = {
-        id:         data.id,
-        name:       data.name,
-        type:       newCol.type,
-        itemCount:  0,
+        id: data.id,
+        name: data.name,
+        type: savedFrontendType,
+        itemCount: 0,
         totalValue: 0,
-        icon:       type?.icon || '📦',
+        icon: type?.icon || '📦',
       }
       setCollections(prev => [...prev, created])
       setNewCol({ name: '', type: 'games' })
@@ -147,7 +156,7 @@ export default function HomePage({ navigate }) {
             <h2 className="section-title">My Collections</h2>
             <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 5v14M5 12h14"/>
+                <path d="M12 5v14M5 12h14" />
               </svg>
               New Collection
             </button>
@@ -157,7 +166,7 @@ export default function HomePage({ navigate }) {
           {error && (
             <div className="api-error">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
               </svg>
               {error}
               <button className="btn btn-sm btn-secondary" onClick={fetchCollections}>Retry</button>
@@ -184,16 +193,16 @@ export default function HomePage({ navigate }) {
                 >
                   <div className="collection-card-top">
                     <div className="collection-icon">{col.icon}</div>
-                    <button 
+                    <button
                       className="btn btn-danger btn-sm"
                       onClick={(e) => { e.stopPropagation(); setConfirmDelete(col); }}
                       title="Delete Collection"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6l-1 14H6L5 6"/>
-                        <path d="M10 11v6M14 11v6"/>
-                        <path d="M9 6V4h6v2"/>
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4h6v2" />
                       </svg>
                     </button>
                   </div>
@@ -201,7 +210,7 @@ export default function HomePage({ navigate }) {
                   <div className="collection-meta">
                     <span className="meta-item">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                        <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
                       </svg>
                       {col.itemCount} items
                     </span>
@@ -219,7 +228,7 @@ export default function HomePage({ navigate }) {
               <div className="collection-card collection-card-add" onClick={() => setShowAddModal(true)}>
                 <div className="add-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 5v14M5 12h14"/>
+                    <path d="M12 5v14M5 12h14" />
                   </svg>
                 </div>
                 <p className="add-label">Add a new collection</p>
@@ -287,7 +296,7 @@ export default function HomePage({ navigate }) {
               <button className="modal-close" onClick={() => setConfirmDelete(null)}>×</button>
             </div>
             <p className="delete-confirm-text" style={{ fontSize: '14px', marginBottom: '16px', lineHeight: '1.5' }}>
-              Are you sure you want to permanently delete <strong>"{confirmDelete.name}"</strong>? 
+              Are you sure you want to permanently delete <strong>"{confirmDelete.name}"</strong>?
               This will delete all items inside it. This action cannot be undone.
             </p>
             <div className="modal-actions">
