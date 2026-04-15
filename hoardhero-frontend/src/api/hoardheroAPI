@@ -71,6 +71,12 @@ export async function createCollection({ name, type }) {
   return request('POST', '/api/collections/', { name, type })
 }
 
+// DELETE remove a collection
+// Endpoint: DELETE /api/collections/:id/
+export async function deleteCollection(collectionId) {
+  return request('DELETE', `/api/collections/${collectionId}/`)
+}
+
 // ── Items ─────────────────────────────────────────────────────────────────
 
 // GET all items for a specific collection
@@ -90,17 +96,40 @@ export async function getItems(collectionId, collectionType, { sort, filter, fil
 // POST add an item to a collection
 // Endpoint: POST /api/items/add/
 export async function addItem(collectionId, itemData) {
-  // Map frontend field names to backend expectations
+  // Convert camelCase keys to snake_case for Django
+  const toSnake = (s) => s.replace(/([A-Z])/g, '_$1').toLowerCase()
+  const snakeData = {}
+  for (const [key, val] of Object.entries(itemData)) {
+    snakeData[toSnake(key)] = val
+  }
   const payload = {
-    ...itemData,
+    ...snakeData,
     collection_id:  collectionId,
     name:           itemData.title,
-    condition:      itemData.condition?.toLowerCase().replace(' ', '_') || 'good',
+    condition:      itemData.condition?.toLowerCase().replace(/ /g, '_') || 'good',
     purchase_price: itemData.purchasePrice || 0,
     current_value:  itemData.currentValue  || 0,
     quantity:       1,
   }
   return request('POST', '/api/items/add/', payload)
+}
+
+// PUT update an item in a collection
+// Endpoint: PUT /api/items/update/:collectionId/:itemId/
+export async function updateItem(collectionId, itemId, itemData) {
+  const toSnake = (s) => s.replace(/([A-Z])/g, '_$1').toLowerCase()
+  const snakeData = {}
+  for (const [key, val] of Object.entries(itemData)) {
+    snakeData[toSnake(key)] = val
+  }
+  const payload = {
+    ...snakeData,
+    name:           itemData.title,
+    condition:      itemData.condition?.toLowerCase().replace(/ /g, '_') || 'good',
+    purchase_price: itemData.purchasePrice || 0,
+    current_value:  itemData.currentValue  || 0,
+  }
+  return request('PUT', `/api/items/update/${collectionId}/${itemId}/`, payload)
 }
 
 // DELETE remove an item

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import { COLLECTION_TYPES } from '../config/collectionConfig'
-import { getCollections, createCollection } from '../api/hoardheroAPI'
+import { getCollections, createCollection, deleteCollection } from '../api/hoardheroAPI'
 import './HomePage.css'
 
 export default function HomePage({ navigate }) {
@@ -12,6 +12,7 @@ export default function HomePage({ navigate }) {
   const [loading, setLoading]           = useState(true)
   const [error, setError]               = useState('')
   const [addError, setAddError]         = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   // ── Load collections on mount ─────────────────────────────────────────
   useEffect(() => {
@@ -37,14 +38,15 @@ export default function HomePage({ navigate }) {
           'music':         'music',
           'movies':        'movies',
         }
-        const frontendType = typeMap[col.collection_type] || col.collection_type
+        const serverType = col.type || col.collection_type
+        const frontendType = typeMap[serverType] || serverType
         const type = COLLECTION_TYPES.find(t => t.value === frontendType)
         return {
           id:         col.id,
           name:       col.name,
           type:       frontendType,
-          itemCount:  col.item_count  || 0,
-          totalValue: parseFloat(col.total_value) || 0,
+          itemCount:  col.itemCount || col.item_count || 0,
+          totalValue: parseFloat(col.totalValue || col.total_value) || 0,
           icon:       type?.icon || '📦',
         }
       })
@@ -91,6 +93,19 @@ export default function HomePage({ navigate }) {
     } catch (err) {
       setAddError(err.message || 'Failed to create collection.')
       console.error(err)
+    }
+  }
+
+  // ── Delete a collection ───────────────────────────────────────────────
+  const handleDeleteCollection = async () => {
+    if (!confirmDelete) return
+    try {
+      await deleteCollection(confirmDelete.id)
+      setCollections(prev => prev.filter(c => c.id !== confirmDelete.id))
+    } catch (err) {
+      console.error('Delete failed:', err)
+    } finally {
+      setConfirmDelete(null)
     }
   }
 
@@ -169,11 +184,18 @@ export default function HomePage({ navigate }) {
                 >
                   <div className="collection-card-top">
                     <div className="collection-icon">{col.icon}</div>
-                    <div className="collection-arrow">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    <button 
+                      className="btn btn-danger btn-sm"
+                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(col); }}
+                      title="Delete Collection"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6l-1 14H6L5 6"/>
+                        <path d="M10 11v6M14 11v6"/>
+                        <path d="M9 6V4h6v2"/>
                       </svg>
-                    </div>
+                    </button>
                   </div>
                   <h3 className="collection-name">{col.name}</h3>
                   <div className="collection-meta">
@@ -250,6 +272,28 @@ export default function HomePage({ navigate }) {
               <button className="btn btn-secondary" onClick={() => { setShowAddModal(false); setAddError('') }}>Cancel</button>
               <button className="btn btn-primary" onClick={handleAddCollection} disabled={!newCol.name.trim()}>
                 Create Collection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Delete Collection?</h2>
+              <button className="modal-close" onClick={() => setConfirmDelete(null)}>×</button>
+            </div>
+            <p className="delete-confirm-text" style={{ fontSize: '14px', marginBottom: '16px', lineHeight: '1.5' }}>
+              Are you sure you want to permanently delete <strong>"{confirmDelete.name}"</strong>? 
+              This will delete all items inside it. This action cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>Cancel</button>
+              <button className="btn btn-primary" style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleDeleteCollection}>
+                Delete
               </button>
             </div>
           </div>
