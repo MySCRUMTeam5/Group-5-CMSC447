@@ -234,6 +234,18 @@ def get_items(request, collection_id):
     except Collection.DoesNotExist:
         return JsonResponse({"error": "Collection not found"}, status=404)
 
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_collection(request, collection_id):
+    try:
+        collection = Collection.objects.get(collection_id=collection_id)
+        collection_name = collection.name
+        collection.delete()
+        return JsonResponse({"Message": "This collection {collection_name} was deleted successfully"}, status=404)
+    
+    except Collection.DoesNotExist:
+        return JsonResponse({"Error: This collection does not exist"}, status=404)
+
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
