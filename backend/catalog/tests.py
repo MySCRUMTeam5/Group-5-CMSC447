@@ -614,29 +614,25 @@ class everything(TestCase):
         self.assertEqual(data[0]["name"], "Millenium Falcon")
 
         #Delete an Item
-        response_4 = self.client.delete("items/delete/{pok_collection_id}/{fire_red_id}/")
+        response_4 = self.client.delete(f"items/delete/{pok_collection_id}/{fire_red_id}/")
         self.assertEqual(response_4, 201) 
         self.assertFalse(Item.objects.filter(name="Fire Red").exists())
 
         #Delete a Duplicate Item
-        response_5 = self.client.delete("items/delete/{lotr_collection_id}/{dup_frodo_id}/")
+        response_5 = self.client.delete(f"items/delete/{lotr_collection_id}/{dup_frodo_id}/")
         self.assertEqual(response_5, 201) 
         self.assertTrue(Item.objects.filter(name="Frodo, Adventurous Hobbit").count(), 1)
 
-        #Delete a Collection, nothing for delete a collection on backend! add in later
-        response_6 = self.client.delete("collections/delete/{lotr_collection_id}/")
+        #Delete a Collection
+        response_6 = self.client.delete(f"collections/delete/{lotr_collection_id}/")
         self.assertEqual(respone_6, 201)
         self.assertFalse(Collection.objects.filter(collection_id=lotr_collection_id).exists())
 
         #Get collection count
-        response_7 = self.client.post("collections/{pok_collection_id}/item-count/")
-        self.assertEqual(response_6, 201)
+        response_7 = self.client.post(f"collections/{pok_collection_id}/item-count/")
+        self.assertEqual(response_7, 201)
         self.assertTrue(pokemon_coll.count(), 2)
 
-        response_8 = self.client.post("collections/{lotr_collection_id}/item-count/")
+        response_8 = self.client.post(f"collections/{lego_coll_id}/item-count/")
         self.assertEqual(response_7, 201)
-        self.assertTrue(lotr_coll.count(), 2)
-
-        response_9 = self.client.post("collections/{lego_coll_id}/item-count/")
-        self.assertEqual(response_8, 201)
         self.assertTrue(lego_coll, 2)

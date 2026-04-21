@@ -241,7 +241,7 @@ def delete_collection(request, collection_id):
         collection = Collection.objects.get(collection_id=collection_id)
         collection_name = collection.name
         collection.delete()
-        return JsonResponse({"Message": "This collection {collection_name} was deleted successfully"}, status=404)
+        return JsonResponse({"Message": f"This collection {collection_name} was deleted successfully"}, status=404)
     
     except Collection.DoesNotExist:
         return JsonResponse({"Error: This collection does not exist"}, status=404)
