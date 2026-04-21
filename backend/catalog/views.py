@@ -86,21 +86,15 @@ def add_get_collections(request):
         if "name" not in data:
             return JsonResponse({"Error" : "Collection must have a name"}, status=400)
 
-        if request.user.is_authenticated:
-            user = request.user
-
-        else:
-            user = User.objects.first()
-
         collection = Collection.objects.create(
-            owner=user,
+            owner=request.user,
             name=data["name"],
             description=data.get("description",""),
             category=data.get("category", ""),
-            collection_type=data.get("type", "video_games"),
+            collection_type=data.get("collection_type", "video_games"),
             is_public=data.get("is_public", False)
             )
-
+        
         return JsonResponse({
             "id" : collection.id,
             "name" : collection.name,
@@ -373,15 +367,12 @@ def sort_filter_collection(request):
 
     if filter_field and filter_value:
         filter_by = GENERAL_FILTER_FIELDS.get(filter_field)
-        print("FILTER BY (ITEM TYPE): ", filter_by)
 
         if filter_by is None and item_type:
             type_filters = FILTER_ITEM_TYPES.get(item_type)
-            print("TYPE FILTERS: ", type_filters)
 
             if type_filters:
                 filter_by = filter_type.get(filter_val)
-                print("FILTER BY (FILTER TYPE): ", filter_by)
 
         if filter_by is None:
             return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
