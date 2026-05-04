@@ -81,13 +81,13 @@ class Item(models.Model):
         FOR_SALE = "for_sale", "For Sale"
         SOLD = "sold", "Sold"
 
-    class ItemSatus(models.TextChoices):
+    class ItemStatus(models.TextChoices):
         OWNED = "owned", "Owned"
         WISHLIST = "wishlist", "Wishlist"
 
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="items")
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="items", null=True, blank=True)
     name = models.CharField(max_length=255)
-    status = models.CharField(max_length=20, choices=ItemSatus.choices, default=ItemSatus.OWNED)
+    status = models.CharField(max_length=20, choices=ItemStatus.choices, default=ItemStatus.OWNED)
     description = models.TextField(blank=True, default="")
     category = models.CharField(max_length=100, blank=True, default="")
     condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.GOOD)

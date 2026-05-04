@@ -1,11 +1,47 @@
 from django.test import TestCase, RequestFactory, Client
 from django.contrib.auth import get_user_model
 from .models import Collection, Item
-from .views import sort_filter_collection
+from .views import sort_filter_collection, add_item_to_wishlist, delete_item_from_wishlist
 from datetime import date
 import json
 
 User = get_user_model()
+
+class WishlistNormal(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="testuser", password="testpass123")
+
+        self.charizard = Item.objects.create(collection=None, name="Charizard", status=Item.ItemStatus.WISHLIST)
+        self.pikachu = Item.objects.create(collection=None, name="Pikachu", status=Item.ItemStatus.WISHLIST)
+        self.squirtle = Item.objects.create(collection=None, name="Squirtle", status=Item.ItemStatus.WISHLIST)
+
+    def test_get_wishlist_item(self):
+        request = self.factory.get("/wishlist/items")
+        response = add_item_to_wishlist(request)
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data["wishlist"]), 3)
+
+    def test_delete_wishlist_item(self):
+        charizard_id = self.charizard.id
+
+        request = self.factory.delete(f"wishlist/delete/{charizard_id}")
+
+        response = delete_item_from_wishlist(request, charizard_id)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(Item.objects.filter(id=charizard_id).exists())
+
+        request2 = self.factory.get("/wishlist/items/")
+        
+        response2 = add_item_to_wishlist(request2)
+
+        data2 = json.loads(response2.content)
+
+        self.assertEqual(len(data2["wishlist"]), 2)
+
 
 class TestFilterNormal(TestCase):
     def setUp(self):

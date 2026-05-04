@@ -101,7 +101,7 @@ def add_item_to_wishlist(request):
                 }
                 for item in items
             ]
-        }, safe=False)
+        })
 
 
 
@@ -115,7 +115,7 @@ def delete_item_from_wishlist(request, item_id):
         item = Item.objects.get(id=item_id)
 
         if item.staus != Item.ItemSatus.WISHLIST:
-            return JsonResponse({"Error" : "Item is not in wishlist", status=400})
+            return JsonResponse({"Error" : "Item is not in wishlist"}, status=400)
         
         item_name = item.name
         item.delete()
