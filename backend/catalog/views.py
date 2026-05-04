@@ -57,6 +57,80 @@ COLLECTION_TYPE_CONFIG = {
     },
 }
 
+@csrf_exempt
+@require_http_methods(["POST", "GET"])
+def add_item_to_wishlist(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        item = Item.objects.create(
+            collection=None,
+            name=data.get("name"),
+            status=Item.ItemStatus.WISHLIST,
+            description=data.get("description", ""),
+            category=data.get("category", ""),
+            condition=data.get("condition", Item.Condition.GOOD),
+            quantity=1,
+            purchase_price=data.get("purchase_price"),
+            current_value=data.get("current_value"),
+        )
+
+        item.full_clean()
+        item.save()
+
+        return JsonResponse({
+            "message": "Item added to wishlist.",
+            "item_id": item.id,
+            "name": item.name,
+            "status": item.status,
+            "collection_id": None,
+        }, status=201)
+    
+    elif request.method == "GET":
+        items = Item.objects.filter(status=Item.ItemStatus.WISHLIST)
+
+        return JsonResponse({
+            "wishlist": [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "category": item.category,
+                    "condition": item.condition,
+                    "purchase_price": item.purchase_price,
+                    "current_value": item.current_value,
+                }
+                for item in items
+            ]
+        }, safe=False)
+
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_item_from_wishlist(request, item_id):
+    data = json.loads(request.body)
+
+    #check to see how we can add/post directly to another collection
+    try:
+        item = Item.objects.get(id=item_id)
+
+        if item.staus != Item.ItemSatus.WISHLIST:
+            return JsonResponse({"Error" : "Item is not in wishlist", status=400})
+        
+        item_name = item.name
+        item.delete()
+        
+        return JsonResponse(
+            {"message": f"Item: '{item_name}' deleted from wishlist successfully!"},
+            status=200
+        )
+
+    except Item.DoesNotExist:
+        return JsonResponse(
+            {"error": "Item not deleted. Item not found in the wishlist!"},
+            status=404
+        )
+
 
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
