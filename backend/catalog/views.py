@@ -108,13 +108,11 @@ def add_item_to_wishlist(request):
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def delete_item_from_wishlist(request, item_id):
-    data = json.loads(request.body)
-
     #check to see how we can add/post directly to another collection
     try:
         item = Item.objects.get(id=item_id)
 
-        if item.staus != Item.ItemSatus.WISHLIST:
+        if item.status != Item.ItemStatus.WISHLIST:
             return JsonResponse({"Error" : "Item is not in wishlist"}, status=400)
         
         item_name = item.name
