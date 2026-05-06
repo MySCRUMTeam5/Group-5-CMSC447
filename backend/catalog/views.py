@@ -69,6 +69,54 @@ def get_or_create_user(clerk_user_id, email=None):
     return user
 
 @csrf_exempt
+@require_http_methods(["PUT", "PATCH"])
+def edit_existing_item(request, item_id, collection_id):
+    #make sure the item exists before editing
+    try:
+        data = json.loads(request.body)
+        
+        item_name = data.get("name")
+
+        if not item_id or not item_name:
+            return JsonResponse({"Error" : "Missing required fields"}, status=404)
+
+        #get the item
+        try:
+            item = Item.objects.get(id=item_id)
+        
+        except Item.DoesNotExist:
+            return JsonResponse({"Error" : "Item not found"}, status=404)
+
+        #update the fields you want to edit
+        item.name = item_name
+
+        if "description" in data:
+            item.description = data["description"]
+        
+        if "condition" in data:
+            item.condition = data["condition"]
+        
+        if "collection_type" in data:
+            item.collection_type = data["collection_type"]
+
+        if "category" in data:
+            item.category = data["category"]    
+        
+        if "purchase_price" in data:
+            item.purchase_price = data["purchase_price"]
+        
+        if "usage_status" in data:
+            item.usage_status = data["usage_status"]
+        
+        item.save()
+
+        return JsonResponse({"Message" : "Item updated successfully"})
+    
+    except json.JSONDecodeError:
+        return JsonResponse({"Error" : "Invalid JSON format"}, status=400)
+
+
+@csrf_exempt
 @require_http_methods(["POST", "GET"])
 def add_item_to_wishlist(request):
     if request.method == "POST":
