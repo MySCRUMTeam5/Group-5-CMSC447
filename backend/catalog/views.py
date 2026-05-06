@@ -57,6 +57,17 @@ COLLECTION_TYPE_CONFIG = {
     },
 }
 
+def get_or_create_user(clerk_user_id, email=None):
+    user = None
+
+    try:
+        user = User.objects.get(clerk_user_id=clerk_user_id)
+    
+    except User.DoesNotExist:
+        user = User.objects.create(clerk_user_id=clerk_user_id, username=email or clerk_user_id)
+    
+    return user
+
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
 def add_item_to_wishlist(request):
@@ -155,11 +166,15 @@ def add_get_collections(request):
     elif request.method == "POST":
         data = json.loads(request.body)
 
+        clerk_user_id = request.headers.get("clerk_user_id")
+
+        user = get_or_create_user(clerk_user_id)
+
         if "name" not in data:
             return JsonResponse({"Error" : "Collection must have a name"}, status=400)
 
         collection = Collection.objects.create(
-            owner=request.user,
+            owner=user,
             name=data["name"],
             description=data.get("description",""),
             category=data.get("category", ""),

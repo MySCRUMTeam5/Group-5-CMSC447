@@ -4,8 +4,34 @@ from .models import Collection, Item
 from .views import sort_filter_collection, add_item_to_wishlist, delete_item_from_wishlist
 from datetime import date
 import json
+from catalog.models import TradingCardItem, DuplicateFlag
 
 User = get_user_model()
+
+class duplicateBug(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="testuser", password="testpass123")
+
+        self.poke_coll = Collection.objects.create(collection_type="trading_cards",name="Pokemon", owner=self.user)
+        self.charizard_item = Item.objects.create(collection=None, name="Charizard")
+        self.charizard_card = TradingCardItem.objects.create(item=self.charizard_item)
+
+        self.dup_charizard_item = Item.objects.create(collection=None, name="Charizard")
+        self.dup_charizard_card = TradingCardItem.objects.create(item=self.dup_charizard_item)
+    
+    def test_bug_fix_edit_dup(self):
+        DuplicateFlag.objects.create(
+            collection=self.poke_coll, 
+            item_a=self.charizard_item, 
+            item_b=self.dup_charizard_item, 
+            is_confirmed_duplicate=True
+            )
+
+        self.dup_charizard_item.name = "Charizard V2"
+        self.dup_charizard_item.save()
+
+        self.assertEqual(self.dup_charizard_item.name, "Charizard V2")
 
 class WishlistNormal(TestCase):
     def setUp(self):
@@ -563,7 +589,7 @@ class everything(TestCase):
         star_destroyer_item =  Item.objects.create(collection=self.collection, name="Star Destroyer")
         star_destroyer_set = LegoSetItem.objects.create(item=star_destroyer_item, series="Star Wars", completeness="completed", piece_count=630)
         falcon_item =  Item.objects.create(collection=self.collection, name="Millenium Falcon")
-        falcon_set = LegoSetItem.objects.create(item=small_falcon_item, series="Star Wars", completeness="completed", piece_count=7500)
+        falcon_set = LegoSetItem.objects.create(item=falcon_item, series="Star Wars", completeness="completed", piece_count=7500)
     
     def end_to_end_normal(self):
         self.client.force_login(self.user) #logs user in
