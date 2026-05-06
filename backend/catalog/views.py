@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 from .models import (
     User, Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
-    LegoSetItem, SportsCardItem, MusicItem, MovieItem
+    LegoSetItem, SportsCardItem, MusicItem, MovieItem, WishlistItem
 )
 from .serializers import (
     UserSerializer, CollectionSerializer, ItemSerializer,
@@ -508,6 +508,74 @@ def barcode(request):
     }
 
     return JsonResponse(result)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_wishlist(request):
+    items = WishlistItem.objects.all()
+    data = [{
+        "id": item.id,
+        "name": item.name,
+        "description": item.description,
+        "collection_type": item.collection_type,
+        "notes": item.notes,
+        "price_target": str(item.price_target),
+        "link": item.link,
+        "created_at": item.created_at.isoformat(),
+    } for item in items]
+    return JsonResponse(data, safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def add_wishlist_item(request):
+    try:
+        data = json.loads(request.body)
+        if "name" not in data:
+            return JsonResponse({"error": "name is required"}, status=400)
+
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            user = User.objects.first()
+
+        item = WishlistItem.objects.create(
+            user=user,
+            name=data["name"],
+            description=data.get("description", ""),
+            collection_type=data.get("collection_type", "video_games"),
+            notes=data.get("notes", ""),
+            price_target=data.get("price_target") or 0,
+            link=data.get("link", ""),
+        )
+
+        return JsonResponse({
+            "id": item.id,
+            "name": item.name,
+            "description": item.description,
+            "collection_type": item.collection_type,
+            "notes": item.notes,
+            "price_target": str(item.price_target),
+            "link": item.link,
+            "created_at": item.created_at.isoformat(),
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_wishlist_item(request, item_id):
+    try:
+        item = WishlistItem.objects.get(id=item_id)
+        item.delete()
+        return JsonResponse({"message": "Wishlist item deleted"}, status=200)
+    except WishlistItem.DoesNotExist:
+        return JsonResponse({"error": "Wishlist item not found"}, status=404)
 
 
 class UserViewSet(viewsets.ModelViewSet):

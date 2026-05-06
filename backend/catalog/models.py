@@ -206,6 +206,23 @@ class MovieItem(models.Model):
         return f"Movie: {self.item.name}"
 
 
+class WishlistItem(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist")
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    collection_type = models.CharField(max_length=50, choices=Collection.COLLECTION_TYPES, default="video_games")
+    notes = models.TextField(blank=True, default="")
+    price_target = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    link = models.URLField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+
 class DuplicateFlag(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="duplicate_flags")
     item_a = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="duplicate_flags_as_a")

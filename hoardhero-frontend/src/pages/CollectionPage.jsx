@@ -1,8 +1,23 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Navbar from '../components/Navbar'
 import { getConfig, BADGE_COLORS, CONDITION_COLORS } from '../config/collectionConfig'
-import { getItems, addItem, updateItem, deleteItem } from '../api/hoardheroAPI'
+import { getItems, addItem, updateItem, deleteItem, scanBarcode } from '../api/hoardheroAPI'
 import './CollectionPage.css'
+
+// Maps frontend collection type to Django's collection_type value
+const FRONTEND_TO_DJANGO_TYPE = {
+  games: 'video_games',
+  trading_cards: 'trading_cards',
+  comics: 'comics',
+  funko: 'funko_pops',
+  lego: 'lego_sets',
+  sports_cards: 'sports_cards',
+  music: 'music',
+  movies: 'movies',
+}
+
+// Barcode lookup is only supported for these collection types
+const BARCODE_SUPPORTED = new Set(['games', 'comics', 'funko', 'lego', 'music', 'movies'])
 
 const SORT_OPTIONS = [
   { value: 'dateAdded-desc', label: 'Newest First' },
@@ -63,6 +78,13 @@ export default function CollectionPage({ navigate, collection }) {
   const [loading,        setLoading]        = useState(true)
   const [pageError,      setPageError]      = useState('')
 
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false)
+  const [barcodeMode,      setBarcodeMode]      = useState('upload')
+  const [barcodeScanning,  setBarcodeScanning]  = useState(false)
+  const [barcodeError,     setBarcodeError]     = useState('')
+  const videoRef  = useRef(null)
+  const streamRef = useRef(null)
+
   useEffect(() => {
     setItems([])
     setSearch('')
@@ -74,6 +96,82 @@ export default function CollectionPage({ navigate, collection }) {
 
   // Convert snake_case to camelCase
   const toCamel = (s) => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+
+  // ── Barcode scan helpers ──────────────────────────────────────────────────
+
+  const stopWebcam = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    if (videoRef.current) videoRef.current.srcObject = null
+  }
+
+  const closeBarcodeModal = () => {
+    stopWebcam()
+    setShowBarcodeModal(false)
+    setBarcodeError('')
+    setBarcodeScanning(false)
+  }
+
+  const startWebcam = async () => {
+    setBarcodeError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      streamRef.current = stream
+      if (videoRef.current) videoRef.current.srcObject = stream
+    } catch {
+      setBarcodeError('Camera access denied. Please allow camera permissions and try again.')
+    }
+  }
+
+  const handleScanResult = (result) => {
+    const camelFields = {}
+    for (const [key, val] of Object.entries(result.fields || {})) {
+      if (val !== null && val !== undefined) camelFields[toCamel(key)] = val
+    }
+    setNewItem(prev => ({
+      ...prev,
+      ...(result.name        ? { title:       result.name }        : {}),
+      ...(result.description ? { description: result.description } : {}),
+      ...(result.barcode     ? { barcode:     result.barcode }     : {}),
+      ...camelFields,
+    }))
+    closeBarcodeModal()
+  }
+
+  const handleScan = async (imageFile) => {
+    setBarcodeScanning(true)
+    setBarcodeError('')
+    try {
+      const djangoType = FRONTEND_TO_DJANGO_TYPE[col.type]
+      const result = await scanBarcode(imageFile, djangoType)
+      handleScanResult(result)
+    } catch (err) {
+      setBarcodeError(err.message || 'No barcode detected. Please try again with a clearer image.')
+    } finally {
+      setBarcodeScanning(false)
+    }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    await handleScan(file)
+  }
+
+  const captureWebcam = () => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return
+    const canvas = document.createElement('canvas')
+    canvas.width  = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+    canvas.toBlob(blob => {
+      if (blob) handleScan(new File([blob], 'capture.jpg', { type: 'image/jpeg' }))
+    }, 'image/jpeg', 0.92)
+  }
 
   const fetchItems = async () => {
     try {
@@ -620,7 +718,21 @@ export default function CollectionPage({ navigate, collection }) {
           <div className="modal modal-wide" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">{editItem ? 'Edit Item' : `Add Item to ${col.name}`}</h2>
-              <button className="modal-close" onClick={() => { setShowAddModal(false); setEditItem(null); setNewItem({}); setFormError('') }}>×</button>
+              <div className="modal-header-actions">
+                {!editItem && BARCODE_SUPPORTED.has(col.type) && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => { setShowBarcodeModal(true); setBarcodeMode('upload'); setBarcodeError('') }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3M21 9V6a1 1 0 00-1-1h-3M21 15v3a1 1 0 01-1 1h-3"/>
+                      <path d="M7 8h1v8H7zM11 8h1v8h-1zM15 8h1v4h-1z"/>
+                    </svg>
+                    Scan Barcode
+                  </button>
+                )}
+                <button className="modal-close" onClick={() => { setShowAddModal(false); setEditItem(null); setNewItem({}); setFormError('') }}>×</button>
+              </div>
             </div>
             {formError && <div className="form-error">{formError}</div>}
             <div className="form-grid">
@@ -694,6 +806,91 @@ export default function CollectionPage({ navigate, collection }) {
               >
                 {confirmDelete.isExact ? `Delete All ${exactCount(confirmDelete.item)}` : 'Delete'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Barcode Scanner Modal ── */}
+      {showBarcodeModal && (
+        <div className="modal-overlay" onClick={closeBarcodeModal}>
+          <div className="modal modal-wide" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Scan Barcode</h2>
+              <button className="modal-close" onClick={closeBarcodeModal}>×</button>
+            </div>
+
+            <div className="barcode-tabs">
+              <button
+                className={`barcode-tab ${barcodeMode === 'upload' ? 'active' : ''}`}
+                onClick={() => { setBarcodeMode('upload'); stopWebcam(); setBarcodeError('') }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                Upload Photo
+              </button>
+              <button
+                className={`barcode-tab ${barcodeMode === 'webcam' ? 'active' : ''}`}
+                onClick={() => { setBarcodeMode('webcam'); setBarcodeError(''); startWebcam() }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M23 7l-7 5 7 5V7z"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+                Use Webcam
+              </button>
+            </div>
+
+            <div className="barcode-body">
+              {barcodeMode === 'upload' ? (
+                <div className="barcode-upload">
+                  <p className="barcode-hint">
+                    Upload a clear photo of the item's barcode to auto-fill details.
+                  </p>
+                  <label className="barcode-upload-label">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    <span>Click to select image</span>
+                    <small>JPG, PNG, or any image format</small>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={barcodeScanning}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="barcode-webcam">
+                  <p className="barcode-hint">
+                    Point your camera at the barcode, then click Capture.
+                  </p>
+                  <div className="webcam-preview">
+                    <video ref={videoRef} autoPlay playsInline muted className="webcam-video" />
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={captureWebcam}
+                    disabled={barcodeScanning}
+                    style={{ marginTop: 14 }}
+                  >
+                    {barcodeScanning ? 'Scanning...' : 'Capture & Scan'}
+                  </button>
+                </div>
+              )}
+
+              {barcodeScanning && (
+                <div className="barcode-scanning">
+                  <div className="spinner" />
+                  <span>Looking up barcode...</span>
+                </div>
+              )}
+
+              {barcodeError && (
+                <div className="form-error" style={{ marginTop: 14 }}>{barcodeError}</div>
+              )}
             </div>
           </div>
         </div>
