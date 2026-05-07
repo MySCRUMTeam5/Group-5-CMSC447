@@ -9,7 +9,7 @@ from rest_framework import viewsets
 from pyzbar.pyzbar import decode
 from PIL import Image, UnidentifiedImageError
 from .models import (
-    User, Collection, Item, CollectionRating, DuplicateFlag,
+    Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
     LegoSetItem, SportsCardItem, MusicItem, MovieItem, WishlistItem
 )
@@ -19,7 +19,6 @@ from .serializers import (
 )
 
 User = get_user_model()
-
 
 # ─── Maps collection_type to its model and accepted fields ───
 COLLECTION_TYPE_CONFIG = {
@@ -57,77 +56,62 @@ COLLECTION_TYPE_CONFIG = {
     },
 }
 
+def get_or_create_user(clerk_user_id, email=None):
+    user = None
+
+    try:
+        user = User.objects.get(clerk_user_id=clerk_user_id)
+    
+    except User.DoesNotExist:
+        user = User.objects.create(clerk_user_id=clerk_user_id, username=email or clerk_user_id)
+    
+    return user
+
+
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
 def add_item_to_wishlist(request):
     if request.method == "POST":
         data = json.loads(request.body)
 
-        item = Item.objects.create(
-            collection=None,
-            name=data.get("name"),
-            status=Item.ItemStatus.WISHLIST,
-            description=data.get("description", ""),
-            category=data.get("category", ""),
-            condition=data.get("condition", Item.Condition.GOOD),
-            quantity=1,
-            purchase_price=data.get("purchase_price"),
-            current_value=data.get("current_value"),
-        )
+        clerk_user_id = request.headers.get("clerk_user_id")
 
-        item.full_clean()
-        item.save()
+        user = get_or_create_user(clerk_user_id)
+
+        item = WishlistItem.objects.create(
+            name=data.get("name"),
+            description=data.get("description", ""),
+            collection_type=data.get("collection_type",""),
+            notes=data.get("notes",""),
+            price_target=data.get("price_target",0),
+            link=data.get("link",""),
+            owner=user
+        )
 
         return JsonResponse({
             "message": "Item added to wishlist.",
             "item_id": item.id,
             "name": item.name,
-            "status": item.status,
-            "collection_id": None,
+            "collection_type" : item.collection_type
         }, status=201)
     
     elif request.method == "GET":
-        items = Item.objects.filter(status=Item.ItemStatus.WISHLIST)
+        items = WishlistItem.objects.all()
 
         return JsonResponse({
             "wishlist": [
                 {
                     "id": item.id,
                     "name": item.name,
-                    "category": item.category,
-                    "condition": item.condition,
-                    "purchase_price": item.purchase_price,
-                    "current_value": item.current_value,
+                    "description": item.description,
+                    "collection_type" : item.collection_type,
+                    "notes": item.notes,
+                    "price_target": item.price_target,
+                    "link": item.link,
                 }
                 for item in items
             ]
         })
-
-
-
-@csrf_exempt
-@require_http_methods(["DELETE"])
-def delete_item_from_wishlist(request, item_id):
-    #check to see how we can add/post directly to another collection
-    try:
-        item = Item.objects.get(id=item_id)
-
-        if item.status != Item.ItemStatus.WISHLIST:
-            return JsonResponse({"Error" : "Item is not in wishlist"}, status=400)
-        
-        item_name = item.name
-        item.delete()
-        
-        return JsonResponse(
-            {"message": f"Item: '{item_name}' deleted from wishlist successfully!"},
-            status=200
-        )
-
-    except Item.DoesNotExist:
-        return JsonResponse(
-            {"error": "Item not deleted. Item not found in the wishlist!"},
-            status=404
-        )
 
 
 @csrf_exempt
@@ -154,6 +138,10 @@ def add_get_collections(request):
 
     elif request.method == "POST":
         data = json.loads(request.body)
+
+        clerk_user_id = request.headers.get("clerk_user_id")
+
+        user = get_or_create_user(clerk_user_id)
 
         if "name" not in data:
             return JsonResponse({"Error" : "Collection must have a name"}, status=400)
@@ -597,7 +585,6 @@ def get_wishlist(request):
         "notes": item.notes,
         "price_target": str(item.price_target),
         "link": item.link,
-        "created_at": item.created_at.isoformat(),
     } for item in items]
     return JsonResponse(data, safe=False)
 

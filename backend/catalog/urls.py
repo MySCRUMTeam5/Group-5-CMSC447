@@ -16,8 +16,8 @@ router.register(r'ratings', CollectionRatingViewSet)
 router.register(r'duplicates', DuplicateFlagViewSet)
 
 urlpatterns = [
-    path("wishlist/items/", views.add_item_to_wishlist, name="add_item_to_wishlist"),
-    path("wishlist/delete/<int:item_id>/", views.delete_item_from_wishlist, name="delete_item_from_wishlist"), 
+    path("wishlist/add/", views.add_item_to_wishlist, name="add_item_to_wishlist"),
+    path("wishlist/delete/<int:item_id>/", views.delete_wishlist_item, name="delete_wishlist_item"), 
     path("collections/delete/<int:collection_id>/", views.delete_collection, name="delete_collection"),
     path("collections/", views.add_get_collections, name="add_get_collections"),
     path("collections/<int:collection_id>/items/", views.get_items, name="get_items"),
@@ -31,7 +31,5 @@ urlpatterns = [
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
     path("barcode/", barcode, name="barcode"),
     path("wishlist/", get_wishlist, name="get_wishlist"),
-    path("wishlist/add/", add_wishlist_item, name="add_wishlist_item"),
-    path("wishlist/delete/<int:item_id>/", delete_wishlist_item, name="delete_wishlist_item"),
     path("", include(router.urls))
 ]
