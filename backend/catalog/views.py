@@ -9,9 +9,9 @@ from rest_framework import viewsets
 from pyzbar.pyzbar import decode
 from PIL import Image, UnidentifiedImageError
 from .models import (
-    User, Collection, Item, CollectionRating, DuplicateFlag,
+    Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
-    LegoSetItem, SportsCardItem, MusicItem, MovieItem
+    LegoSetItem, SportsCardItem, MusicItem, MovieItem, WishlistItem
 )
 from .serializers import (
     UserSerializer, CollectionSerializer, ItemSerializer,
@@ -19,7 +19,6 @@ from .serializers import (
 )
 
 User = get_user_model()
-
 
 # ─── Maps collection_type to its model and accepted fields ───
 COLLECTION_TYPE_CONFIG = {
@@ -68,53 +67,6 @@ def get_or_create_user(clerk_user_id, email=None):
     
     return user
 
-@csrf_exempt
-@require_http_methods(["PUT", "PATCH"])
-def edit_existing_item(request, item_id, collection_id):
-    #make sure the item exists before editing
-    try:
-        data = json.loads(request.body)
-        
-        item_name = data.get("name")
-
-        if not item_id or not item_name:
-            return JsonResponse({"Error" : "Missing required fields"}, status=404)
-
-        #get the item
-        try:
-            item = Item.objects.get(id=item_id)
-        
-        except Item.DoesNotExist:
-            return JsonResponse({"Error" : "Item not found"}, status=404)
-
-        #update the fields you want to edit
-        item.name = item_name
-
-        if "description" in data:
-            item.description = data["description"]
-        
-        if "condition" in data:
-            item.condition = data["condition"]
-        
-        if "collection_type" in data:
-            item.collection_type = data["collection_type"]
-
-        if "category" in data:
-            item.category = data["category"]    
-        
-        if "purchase_price" in data:
-            item.purchase_price = data["purchase_price"]
-        
-        if "usage_status" in data:
-            item.usage_status = data["usage_status"]
-        
-        item.save()
-
-        return JsonResponse({"Message" : "Item updated successfully"})
-    
-    except json.JSONDecodeError:
-        return JsonResponse({"Error" : "Invalid JSON format"}, status=400)
-
 
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
@@ -122,71 +74,44 @@ def add_item_to_wishlist(request):
     if request.method == "POST":
         data = json.loads(request.body)
 
-        item = Item.objects.create(
-            collection=None,
-            name=data.get("name"),
-            status=Item.ItemStatus.WISHLIST,
-            description=data.get("description", ""),
-            category=data.get("category", ""),
-            condition=data.get("condition", Item.Condition.GOOD),
-            quantity=1,
-            purchase_price=data.get("purchase_price"),
-            current_value=data.get("current_value"),
-        )
+        clerk_user_id = request.headers.get("clerk_user_id")
 
-        item.full_clean()
-        item.save()
+        user = get_or_create_user(clerk_user_id)
+
+        item = WishlistItem.objects.create(
+            name=data.get("name"),
+            description=data.get("description", ""),
+            collection_type=data.get("collection_type",""),
+            notes=data.get("notes",""),
+            price_target=data.get("price_target",0),
+            link=data.get("link",""),
+            owner=user
+        )
 
         return JsonResponse({
             "message": "Item added to wishlist.",
             "item_id": item.id,
             "name": item.name,
-            "status": item.status,
-            "collection_id": None,
+            "collection_type" : item.collection_type
         }, status=201)
     
     elif request.method == "GET":
-        items = Item.objects.filter(status=Item.ItemStatus.WISHLIST)
+        items = WishlistItem.objects.all()
 
         return JsonResponse({
             "wishlist": [
                 {
                     "id": item.id,
                     "name": item.name,
-                    "category": item.category,
-                    "condition": item.condition,
-                    "purchase_price": item.purchase_price,
-                    "current_value": item.current_value,
+                    "description": item.description,
+                    "collection_type" : item.collection_type,
+                    "notes": item.notes,
+                    "price_target": item.price_target,
+                    "link": item.link,
                 }
                 for item in items
             ]
         })
-
-
-
-@csrf_exempt
-@require_http_methods(["DELETE"])
-def delete_item_from_wishlist(request, item_id):
-    #check to see how we can add/post directly to another collection
-    try:
-        item = Item.objects.get(id=item_id)
-
-        if item.status != Item.ItemStatus.WISHLIST:
-            return JsonResponse({"Error" : "Item is not in wishlist"}, status=400)
-        
-        item_name = item.name
-        item.delete()
-        
-        return JsonResponse(
-            {"message": f"Item: '{item_name}' deleted from wishlist successfully!"},
-            status=200
-        )
-
-    except Item.DoesNotExist:
-        return JsonResponse(
-            {"error": "Item not deleted. Item not found in the wishlist!"},
-            status=404
-        )
 
 
 @csrf_exempt
@@ -646,6 +571,73 @@ def barcode(request):
     }
 
     return JsonResponse(result)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_wishlist(request):
+    items = WishlistItem.objects.all()
+    data = [{
+        "id": item.id,
+        "name": item.name,
+        "description": item.description,
+        "collection_type": item.collection_type,
+        "notes": item.notes,
+        "price_target": str(item.price_target),
+        "link": item.link,
+    } for item in items]
+    return JsonResponse(data, safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def add_wishlist_item(request):
+    try:
+        data = json.loads(request.body)
+        if "name" not in data:
+            return JsonResponse({"error": "name is required"}, status=400)
+
+        if request.user.is_authenticated:
+            user = request.user
+        else:
+            user = User.objects.first()
+
+        item = WishlistItem.objects.create(
+            user=user,
+            name=data["name"],
+            description=data.get("description", ""),
+            collection_type=data.get("collection_type", "video_games"),
+            notes=data.get("notes", ""),
+            price_target=data.get("price_target") or 0,
+            link=data.get("link", ""),
+        )
+
+        return JsonResponse({
+            "id": item.id,
+            "name": item.name,
+            "description": item.description,
+            "collection_type": item.collection_type,
+            "notes": item.notes,
+            "price_target": str(item.price_target),
+            "link": item.link,
+            "created_at": item.created_at.isoformat(),
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_wishlist_item(request, item_id):
+    try:
+        item = WishlistItem.objects.get(id=item_id)
+        item.delete()
+        return JsonResponse({"message": "Wishlist item deleted"}, status=200)
+    except WishlistItem.DoesNotExist:
+        return JsonResponse({"error": "Wishlist item not found"}, status=404)
 
 
 class UserViewSet(viewsets.ModelViewSet):

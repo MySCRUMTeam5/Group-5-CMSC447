@@ -83,13 +83,8 @@ class Item(models.Model):
         FOR_SALE = "for_sale", "For Sale"
         SOLD = "sold", "Sold"
 
-    class ItemStatus(models.TextChoices):
-        OWNED = "owned", "Owned"
-        WISHLIST = "wishlist", "Wishlist"
-
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="items", null=True, blank=True)
     name = models.CharField(max_length=255)
-    status = models.CharField(max_length=20, choices=ItemStatus.choices, default=ItemStatus.OWNED)
     description = models.TextField(blank=True, default="")
     category = models.CharField(max_length=100, blank=True, default="")
     condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.GOOD)
@@ -113,12 +108,17 @@ class Item(models.Model):
     def __str__(self):
         return f"{self.name} ({self.collection.name})"
     
-    def clean(self):
-        if self.status == self.ItemStatus.OWNED and not self.collection:
-            raise ValidationError("Owned items must belong to a collection.")
+class WishlistItem(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    collection_type = models.CharField(max_length=255)
+    notes = models.TextField(blank=True, default="")
+    price_target = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    link = models.URLField(blank=True, default="")
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="wishlist")
 
-        if self.status == self.ItemStatus.WISHLIST and self.collection:
-            raise ValidationError("Wishlist items should not have a collection.")
+    def __str__(self):
+        return f"Wishlist Item: {self.name}"
 
 # Video Games
 class VideoGameItem(models.Model):

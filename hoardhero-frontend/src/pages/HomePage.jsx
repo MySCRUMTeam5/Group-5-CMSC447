@@ -154,12 +154,20 @@ export default function HomePage({ navigate }) {
         <section className="collections-section">
           <div className="section-header">
             <h2 className="section-title">My Collections</h2>
-            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              New Collection
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button className="btn btn-secondary" onClick={() => navigate('wishlist')}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                Wishlist
+              </button>
+              <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                New Collection
+              </button>
+            </div>
           </div>
 
           {/* Error state */}

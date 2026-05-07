@@ -2,8 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, CollectionViewSet, ItemViewSet,
-    CollectionRatingViewSet, DuplicateFlagViewSet, 
-    barcode
+    CollectionRatingViewSet, DuplicateFlagViewSet,
+    barcode, get_wishlist, add_wishlist_item, delete_wishlist_item
 )
 from . import views
 
@@ -16,9 +16,8 @@ router.register(r'ratings', CollectionRatingViewSet)
 router.register(r'duplicates', DuplicateFlagViewSet)
 
 urlpatterns = [
-    path("items/update/<int:collection_id>/<int:item_id>/", views.edit_existing_item, name="edit_existing_item"),
-    path("wishlist/items/", views.add_item_to_wishlist, name="add_item_to_wishlist"),
-    path("wishlist/delete/<int:item_id>/", views.delete_item_from_wishlist, name="delete_item_from_wishlist"), 
+    path("wishlist/add/", views.add_item_to_wishlist, name="add_item_to_wishlist"),
+    path("wishlist/delete/<int:item_id>/", views.delete_wishlist_item, name="delete_wishlist_item"), 
     path("collections/delete/<int:collection_id>/", views.delete_collection, name="delete_collection"),
     path("collections/", views.add_get_collections, name="add_get_collections"),
     path("collections/<int:collection_id>/items/", views.get_items, name="get_items"),
@@ -31,5 +30,6 @@ urlpatterns = [
     ),
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
     path("barcode/", barcode, name="barcode"),
+    path("wishlist/", get_wishlist, name="get_wishlist"),
     path("", include(router.urls))
 ]
