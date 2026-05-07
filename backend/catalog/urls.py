@@ -2,8 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, CollectionViewSet, ItemViewSet,
-    CollectionRatingViewSet, DuplicateFlagViewSet, 
-    barcode
+    CollectionRatingViewSet, DuplicateFlagViewSet,
+    barcode, get_wishlist, add_wishlist_item, delete_wishlist_item
 )
 from . import views
 
@@ -30,5 +30,8 @@ urlpatterns = [
     ),
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
     path("barcode/", barcode, name="barcode"),
+    path("wishlist/", get_wishlist, name="get_wishlist"),
+    path("wishlist/add/", add_wishlist_item, name="add_wishlist_item"),
+    path("wishlist/delete/<int:item_id>/", delete_wishlist_item, name="delete_wishlist_item"),
     path("", include(router.urls))
 ]
