@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import { getConfig, BADGE_COLORS, CONDITION_COLORS } from '../config/collectionConfig'
 import { getItems, addItem, updateItem, deleteItem } from '../api/hoardheroAPI'
 import './CollectionPage.css'
+import ValueChart from "../components/ValueChart";
 
 const SORT_OPTIONS = [
   { value: 'dateAdded-desc', label: 'Newest First' },
@@ -441,6 +442,8 @@ export default function CollectionPage({ navigate, collection }) {
         {hasActiveFilters && (
           <p className="results-count">Showing {displayItems.length} of {items.length} items</p>
         )}
+	
+	<ValueChart collectionId={col.id} />
 
         {/* API error state */}
         {pageError && (

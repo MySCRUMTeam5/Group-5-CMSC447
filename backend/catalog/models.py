@@ -206,6 +206,18 @@ class MovieItem(models.Model):
         return f"Movie: {self.item.name}"
 
 
+class ValueSnapshot(models.Model):
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="value_snapshots")
+    date = models.DateField()
+    total_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["date"]
+        unique_together = ["collection", "date"]
+
+    def __str__(self):
+        return f"{self.collection.name} - {self.date}: ${self.total_value}"
+
 class DuplicateFlag(models.Model):
     collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name="duplicate_flags")
     item_a = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="duplicate_flags_as_a")

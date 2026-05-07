@@ -28,5 +28,7 @@ urlpatterns = [
     ),
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
     path("barcode/", barcode, name="barcode"),
+    path("collections/<int:collection_id>/value-history/", views.value_history, name="value_history"),
+    path("value-snapshots/record/", views.record_value_snapshot, name="record_value_snapshot"),
     path("", include(router.urls))
 ]

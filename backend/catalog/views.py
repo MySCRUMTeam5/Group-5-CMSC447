@@ -1,5 +1,6 @@
 import json
 import requests
+from datetime import timedelta, date
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,8 +12,10 @@ from PIL import Image, UnidentifiedImageError
 from .models import (
     User, Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
-    LegoSetItem, SportsCardItem, MusicItem, MovieItem
+    LegoSetItem, SportsCardItem, MusicItem, MovieItem,
+    ValueSnapshot
 )
+
 from .serializers import (
     UserSerializer, CollectionSerializer, ItemSerializer,
     CollectionRatingSerializer, DuplicateFlagSerializer
@@ -512,6 +515,77 @@ def barcode(request):
 
     return JsonResponse(result)
 
+@require_http_methods(["GET"])
+def value_history(request, collection_id):
+    try:
+        collection = Collection.objects.get(id=collection_id)
+    except Collection.DoesNotExist:
+        return JsonResponse({"error": "Collection not found"}, status=404)
+
+    days = int(request.GET.get("days", 30))
+    if days not in [30, 60]:
+        return JsonResponse({"error": "days must be 30 or 60"}, status=400)
+
+    end_date = date.today()
+    start_date = end_date - timedelta(days=days)
+
+    snapshots = ValueSnapshot.objects.filter(
+        collection=collection,
+        date__gte=start_date,
+        date__lte=end_date
+    ).order_by("date")
+
+    data = []
+    for snap in snapshots:
+        data.append({
+            "date": snap.date.isoformat(),
+            "total_value": str(snap.total_value),
+        })
+
+    if not data:
+        current_total = collection.items.aggregate(
+            total=Sum("current_value")
+        )["total"] or 0
+        data.append({
+            "date": end_date.isoformat(),
+            "total_value": str(current_total),
+        })
+
+    return JsonResponse({
+        "collection_id": collection_id,
+        "collection_name": collection.name,
+        "days": days,
+        "history": data,
+    }, status=200)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def record_value_snapshot(request):
+    try:
+        today = date.today()
+        collections = Collection.objects.all()
+        recorded = 0
+
+        for collection in collections:
+            total = collection.items.aggregate(
+                total=Sum("current_value")
+            )["total"] or 0
+
+            ValueSnapshot.objects.update_or_create(
+                collection=collection,
+                date=today,
+                defaults={"total_value": total}
+            )
+            recorded += 1
+
+        return JsonResponse({
+            "message": f"Recorded snapshots for {recorded} collections",
+            "date": today.isoformat()
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
