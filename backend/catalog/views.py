@@ -450,6 +450,106 @@ def map_fields(item_type, item):
 
     return {}
 
+GENRES = {
+    "hip hop": "Hip-Hop",
+    "hip-hop": "Hip-Hop",
+    "rap": "Hip-Hop",
+    "hiphop": "Hip-Hop",
+
+    "country": "Country",
+
+    "pop": "Pop",
+
+    "rock": "Rock",
+
+    "jazz": "Jazz",
+
+    "funk": "R&B",
+    "soul": "R&B",
+    "r&b": "R&B",
+    "rnb": "R&B",
+    "rhythm and blues": "R&B",
+    "blues": "R&B",
+    "r and b": "R&B",
+
+    "electronic": "Electronic",
+    "edm": "Electronic",
+    
+    "metal": "Metal",
+    "heavy metal": "Metal",
+}
+
+FORMATS = {
+    "cd": "CD",
+    "cdr": "CD",
+
+    "vinyl": "Vinyl",
+    "lp": "Vinyl",
+
+    "cassette": "Cassette",
+
+    "digital": "Digital",
+
+    "8-track": "8-track",
+}
+
+def musicbrainz_api(barcode):
+    url = f"https://musicbrainz.org/ws/2/release/?query=barcode:{barcode}&fmt=json"
+
+    headers = {
+        "User-Agent": "HoardHero"
+    }
+
+    r = requests.get(url, headers=headers, timeout=10)
+    data = r.json()
+
+    releases = data.get("releases", [])
+    if not releases:
+        return None
+
+    release = releases[0]
+
+    artist = None
+    if release.get("artist-credit"):
+        artist = release["artist-credit"][0].get("name")
+
+    return {
+        "title": release.get("title"),
+        "artist": artist,
+    }
+
+def discogs_api(barcode):
+    url = f"https://api.discogs.com/database/search?barcode={barcode}"
+
+    headers = {
+        "User-Agent": "HoardHero"
+    }
+
+    r = requests.get(url, headers=headers, timeout=10)
+    data = r.json()
+
+    results = data.get("results", [])
+    if not results:
+        return None
+
+    item = results[0]
+
+    return {
+        "genre": item.get("genre", []),
+        "format": item.get("format", []),
+    }
+
+def match_keyword(value, keywords):
+    if not value:
+        return None
+
+    v = value.lower()
+
+    for keyword, result in keywords.items():
+        if keyword in v:
+            return result
+
+    return "Other"
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -475,6 +575,32 @@ def barcode(request):
         
 
     barcode = decoded_code[0].data.decode("utf-8")
+    
+    if item_type == "music":
+        musicbrainz = musicbrainz_api(barcode)
+        discogs = discogs_api(barcode)
+
+        if not musicbrainz:
+            return JsonResponse({"error": "Music not found"}, status=404)
+
+        genre = discogs.get("genre", []) if discogs else []
+        format = discogs.get("format", []) if discogs else []
+
+        result = {
+            "name": musicbrainz["title"],
+            "barcode": barcode,
+
+            "fields": {
+                "album_title": musicbrainz["title"],
+                "artist": musicbrainz["artist"],
+
+                "genre": match_keyword(genre[0] if genre else "", GENRES),
+                "format": match_keyword(format[0] if format else "", FORMATS),
+            }
+        }
+
+        return JsonResponse(result)
+
 
     url = f"https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
    
@@ -502,7 +628,6 @@ def barcode(request):
     result = {
         "name": item.get("title"),
         "description": item.get("description"),
-        "image": item.get("images", [None])[0],
         "barcode": barcode,
         "fields": map_fields(item_type, filtered_item)
     }
