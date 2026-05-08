@@ -16,7 +16,6 @@ router.register(r'ratings', CollectionRatingViewSet)
 router.register(r'duplicates', DuplicateFlagViewSet)
 
 urlpatterns = [
-    path("collections/delete/<int:collection_id>/", views.delete_collection, name="delete_collection"),
     path("collections/", views.add_get_collections, name="add_get_collections"),
     path("collections/<int:collection_id>/items/", views.get_items, name="get_items"),
     path("items/add/", views.add_item, name="add_item"),
@@ -28,5 +27,6 @@ urlpatterns = [
     ),
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
     path("barcode/", barcode, name="barcode"),
+    path("ebay/search/", views.ebay_search, name="ebay_search"),
     path("", include(router.urls))
 ]
