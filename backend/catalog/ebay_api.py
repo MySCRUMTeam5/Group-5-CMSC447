@@ -52,12 +52,15 @@ class Ebay_API(object): #sets up class wrapper for ebay api calls
     def parse_items(self, data):
         items = data.get("itemSummaries", [])
 
-        return [ {
-            "title" : item.get("title"),
-            "price" : item.get("price", {}).get("value"),
-            "condition" : item.get("condition")
-            "image" : item.get("image", {}).get("imageUrl"),
-            "url" : item.get("itemWebUrl")
+        return [
+        {
+            "title": item.get("title"),
+            "market_value": item.get("price", {}).get("value"),
+            "currency": item.get("price", {}).get("currency"),
+            "condition": item.get("condition"),
+            "image": item.get("image", {}).get("imageUrl"),
+            "url": item.get("itemWebUrl"),
+            "item_id": item.get("itemId"),
         }
         for item in items
-        ]
+    ]

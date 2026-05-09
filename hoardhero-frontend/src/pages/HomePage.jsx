@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
+import OverallValueChart from '../components/OverallValueChart'
 import { COLLECTION_TYPES } from '../config/collectionConfig'
-import { getCollections, createCollection, deleteCollection } from '../api/hoardheroAPI'
+import { getCollections, createCollection, deleteCollection, getItems } from '../api/hoardheroAPI'
 import './HomePage.css'
 
 // ── Single source of truth for type mapping ───────────────────────────────────
@@ -42,6 +43,7 @@ export default function HomePage({ navigate }) {
   const [error, setError] = useState('')
   const [addError, setAddError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [growthData, setGrowthData] = useState([])
 
   // ── Load collections on mount ─────────────────────────────────────────
   useEffect(() => {
@@ -68,6 +70,7 @@ export default function HomePage({ navigate }) {
         }
       })
       setCollections(mapped)
+      await buildGrowthData(mapped)
     } catch (err) {
       setError('Could not load collections. Is the Django server running?')
       console.error(err)
@@ -76,7 +79,40 @@ export default function HomePage({ navigate }) {
       setLoaded(true)
     }
   }
+  const buildGrowthData = async (collections) => {
+    let allItems = []
 
+    for (const col of collections) {
+      try {
+        const items = await getItems(col.id)
+        allItems = [...allItems, ...items]
+      } catch (err) {
+        console.error('Failed fetching items:', err)
+      }
+    }
+
+    // Convert + sort by date
+    const sorted = allItems
+    .map(i => ({
+      date: i.created_at?.slice(0, 10),
+      value: parseFloat(i.current_value) || 0
+    }))
+    .filter(i => i.date)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+    // Build cumulative total
+    let total = 0
+    const result = sorted.map(entry => {
+      total += entry.value
+      return {
+        date: entry.date,
+        value: total
+      }
+    })
+
+    setGrowthData(result)
+  }
+  
   // ── Create a new collection ───────────────────────────────────────────
   const handleAddCollection = async () => {
     if (!newCol.name.trim()) return
@@ -149,6 +185,10 @@ export default function HomePage({ navigate }) {
             </div>
           </div>
         </section>
+
+        {growthData.length > 0 && (
+          <OverallValueChart data={growthData} />
+        )}
 
         {/* Collections Grid */}
         <section className="collections-section">

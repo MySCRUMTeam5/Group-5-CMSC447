@@ -8,6 +8,7 @@ from django.db.models import Sum
 from rest_framework import viewsets
 from pyzbar.pyzbar import decode
 from PIL import Image, UnidentifiedImageError
+from .ebay_api import Ebay_API
 from .models import (
     Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
@@ -666,3 +667,26 @@ class CollectionRatingViewSet(viewsets.ModelViewSet):
 class DuplicateFlagViewSet(viewsets.ModelViewSet):
     queryset = DuplicateFlag.objects.all()
     serializer_class = DuplicateFlagSerializer
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def ebay_search(request):
+    query = request.GET.get("q")
+
+    if not query:
+        return JsonResponse({"error": "Missing search query"}, status=400)
+
+    try:
+        ebay = Ebay_API()
+
+        raw_data = ebay.fetch_items(query)
+
+        parsed_data = ebay.parse_items(raw_data)
+        return JsonResponse({
+            "query": query,
+            "raw_data": raw_data,
+            "results": parsed_data
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)  

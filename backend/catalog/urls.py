@@ -31,5 +31,6 @@ urlpatterns = [
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
     path("barcode/", barcode, name="barcode"),
     path("wishlist/", get_wishlist, name="get_wishlist"),
+    path("ebay/search/", views.ebay_search, name="ebay_search"),
     path("", include(router.urls))
 ]
