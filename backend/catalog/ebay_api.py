@@ -11,7 +11,7 @@ class Ebay_API(object): #sets up class wrapper for ebay api calls
     def __init__(self):
         self.api_key = API_KEY
         self.api_id = API_ID
-        self.base_url = "https://api.sandbox.ebay.com"
+        self.base_url = "https://api.ebay.com"
         self.token = None
 
     
@@ -55,7 +55,7 @@ class Ebay_API(object): #sets up class wrapper for ebay api calls
         return [ {
             "title" : item.get("title"),
             "price" : item.get("price", {}).get("value"),
-            "condition" : item.get("condition")
+            "condition" : item.get("condition"),
             "image" : item.get("image", {}).get("imageUrl"),
             "url" : item.get("itemWebUrl")
         }

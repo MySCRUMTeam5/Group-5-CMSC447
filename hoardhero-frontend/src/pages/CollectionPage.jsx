@@ -117,7 +117,7 @@ export default function CollectionPage({ navigate, collection }) {
   const startWebcam = async () => {
     setBarcodeError('')
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
     } catch {
@@ -132,10 +132,11 @@ export default function CollectionPage({ navigate, collection }) {
     }
     setNewItem(prev => ({
       ...prev,
-      ...(result.name        ? { title:       result.name }        : {}),
-      ...(result.description ? { description: result.description } : {}),
-      ...(result.barcode     ? { barcode:     result.barcode }     : {}),
-      ...(result.image       ? { imageUrl:    result.image }       : {}),
+      ...(result.name         ? { title:        result.name }         : {}),
+      ...(result.description  ? { description:  result.description }  : {}),
+      ...(result.barcode      ? { barcode:      result.barcode }      : {}),
+      ...(result.image        ? { imageUrl:     result.image }        : {}),
+      ...(result.market_price ? { currentValue: result.market_price } : {}),
       ...camelFields,
     }))
     closeBarcodeModal()

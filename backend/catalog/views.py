@@ -8,6 +8,7 @@ from django.db.models import Sum
 from rest_framework import viewsets
 from pyzbar.pyzbar import decode
 from PIL import Image, UnidentifiedImageError
+from .ebay_api import Ebay_API
 from .models import (
     User, Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
@@ -575,12 +576,28 @@ def barcode(request):
 
     fields = COLLECTION_TYPE_CONFIG[item_type]["fields"]
 
-    filtered_item = {field: item.get(field) for field in fields}    
+    filtered_item = {field: item.get(field) for field in fields}
+
+    upc_image = item.get("images", [None])[0]
+
+    # Fetch image and market price from eBay; fall back gracefully if unavailable
+    ebay_image = None
+    market_price = None
+    try:
+        ebay = Ebay_API()
+        ebay_data = ebay.fetch_items(item.get("title") or barcode)
+        ebay_items = ebay.parse_items(ebay_data)
+        if ebay_items:
+            ebay_image = ebay_items[0].get("image")
+            market_price = ebay_items[0].get("price")
+    except Exception:
+        pass
 
     result = {
         "name": item.get("title"),
         "description": item.get("description"),
-        "image": item.get("images", [None])[0],
+        "image": upc_image or ebay_image,
+        "market_price": market_price,
         "barcode": barcode,
         "fields": map_fields(item_type, filtered_item)
     }
