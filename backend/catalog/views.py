@@ -57,6 +57,78 @@ COLLECTION_TYPE_CONFIG = {
     },
 }
 
+@csrf_exempt
+@require_http_methods(["POST", "GET"])
+def add_item_to_wishlist(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        item = Item.objects.create(
+            collection=None,
+            name=data.get("name"),
+            status=Item.ItemStatus.WISHLIST,
+            description=data.get("description", ""),
+            category=data.get("category", ""),
+            condition=data.get("condition", Item.Condition.GOOD),
+            quantity=1,
+            purchase_price=data.get("purchase_price"),
+            current_value=data.get("current_value"),
+        )
+
+        item.full_clean()
+        item.save()
+
+        return JsonResponse({
+            "message": "Item added to wishlist.",
+            "item_id": item.id,
+            "name": item.name,
+            "status": item.status,
+            "collection_id": None,
+        }, status=201)
+    
+    elif request.method == "GET":
+        items = Item.objects.filter(status=Item.ItemStatus.WISHLIST)
+
+        return JsonResponse({
+            "wishlist": [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "category": item.category,
+                    "condition": item.condition,
+                    "purchase_price": item.purchase_price,
+                    "current_value": item.current_value,
+                }
+                for item in items
+            ]
+        })
+
+
+
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_item_from_wishlist(request, item_id):
+    #check to see how we can add/post directly to another collection
+    try:
+        item = Item.objects.get(id=item_id)
+
+        if item.status != Item.ItemStatus.WISHLIST:
+            return JsonResponse({"Error" : "Item is not in wishlist"}, status=400)
+        
+        item_name = item.name
+        item.delete()
+        
+        return JsonResponse(
+            {"message": f"Item: '{item_name}' deleted from wishlist successfully!"},
+            status=200
+        )
+
+    except Item.DoesNotExist:
+        return JsonResponse(
+            {"error": "Item not deleted. Item not found in the wishlist!"},
+            status=404
+        )
+
 
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
@@ -86,21 +158,15 @@ def add_get_collections(request):
         if "name" not in data:
             return JsonResponse({"Error" : "Collection must have a name"}, status=400)
 
-        if request.user.is_authenticated:
-            user = request.user
-
-        else:
-            user = User.objects.first()
-
         collection = Collection.objects.create(
-            owner=user,
+            owner=request.user,
             name=data["name"],
             description=data.get("description",""),
             category=data.get("category", ""),
-            collection_type=data.get("type", "video_games"),
+            collection_type=data.get("collection_type", "video_games"),
             is_public=data.get("is_public", False)
             )
-
+        
         return JsonResponse({
             "id" : collection.id,
             "name" : collection.name,
@@ -243,6 +309,18 @@ def get_items(request, collection_id):
     except Collection.DoesNotExist:
         return JsonResponse({"error": "Collection not found"}, status=404)
 
+@csrf_exempt
+@require_http_methods(["DELETE"])
+def delete_collection(request, collection_id):
+    try:
+        collection = Collection.objects.get(collection_id=collection_id)
+        collection_name = collection.name
+        collection.delete()
+        return JsonResponse({"Message": f"This collection {collection_name} was deleted successfully"}, status=404)
+    
+    except Collection.DoesNotExist:
+        return JsonResponse({"Error: This collection does not exist"}, status=404)
+
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
@@ -376,15 +454,12 @@ def sort_filter_collection(request):
 
     if filter_field and filter_value:
         filter_by = GENERAL_FILTER_FIELDS.get(filter_field)
-        print("FILTER BY (ITEM TYPE): ", filter_by)
 
         if filter_by is None and item_type:
             type_filters = FILTER_ITEM_TYPES.get(item_type)
-            print("TYPE FILTERS: ", type_filters)
 
             if type_filters:
                 filter_by = filter_type.get(filter_val)
-                print("FILTER BY (FILTER TYPE): ", filter_by)
 
         if filter_by is None:
             return JsonResponse({"Error" : "Not a valid filter option"}, status=404)
