@@ -1,4 +1,5 @@
 import json
+import re
 import requests
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
@@ -511,10 +512,35 @@ BARCODE_TYPES = {
 
 def map_fields(item_type, item):
     if item_type == "movies":
+        title = item.get("title","")
+        format_ = None
+        title_lower = title.lower()
+        clean_title = None
+     
+        if "4k" in title_lower or "uhd" in title_lower:
+            format_ = "4K UHD"
+
+
+        elif "blu-ray" in title_lower or "blu ray" in title_lower:
+            format_ = "Blu-ray"
+           
+                
+        elif "dvd" in title_lower:
+            format_ = "DVD"
+          
+        
+        elif "vhs" in title_lower:
+            format_ = "VHS"
+      
+        if format_:
+            match = re.search(r"\(", title)
+            if match:
+                clean_title = title[:match.start()].strip()
+
         return {
-            "title": item.get("title"),
+            "title": clean_title if clean_title else title,
             "genre": None,
-            "format": None,
+            "format": format_,
             "director": None,
             "watched_status": None,
         }
