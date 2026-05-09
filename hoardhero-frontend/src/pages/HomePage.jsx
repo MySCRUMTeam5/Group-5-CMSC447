@@ -54,8 +54,13 @@ export default function HomePage({ navigate }) {
     try {
       setLoading(true)
       setError('')
+      console.log("🟡 FETCHING COLLECTIONS...")
       const data = await getCollections()
+      console.log("🟢 RAW COLLECTIONS RESPONSE:", data)
+      console.log("🟢 IS ARRAY:", Array.isArray(data))
+
       const mapped = (Array.isArray(data) ? data : data.results || []).map(col => {
+        console.log("🔵 MAPPING COLLECTION:", col)
         // Backend sends "type" field containing the Django value (e.g. "video_games")
         const serverType = col.type || col.collection_type
         const frontendType = DJANGO_TO_FRONTEND_TYPE[serverType] ?? serverType
@@ -69,9 +74,11 @@ export default function HomePage({ navigate }) {
           icon: type?.icon || '📦',
         }
       })
+      console.log("🟣 FINAL MAPPED COLLECTIONS:", mapped)
       setCollections(mapped)
       await buildGrowthData(mapped)
     } catch (err) {
+      console.error("🔴 FETCH COLLECTIONS ERROR:", err)
       setError('Could not load collections. Is the Django server running?')
       console.error(err)
     } finally {

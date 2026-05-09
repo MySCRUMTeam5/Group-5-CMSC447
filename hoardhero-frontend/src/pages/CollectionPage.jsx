@@ -62,6 +62,7 @@ function buildTitleVariantMap(items) {
 }
 
 export default function CollectionPage({ navigate, collection }) {
+  console.log("🔵 COLLECTION PAGE RECEIVED:", collection)
   const col    = collection || { name: 'Collection', icon: '📦', type: 'games' }
   const config = getConfig(col.type)
 
@@ -126,8 +127,11 @@ export default function CollectionPage({ navigate, collection }) {
   }
 
   const handleScanResult = (result) => {
+    console.log("🟣 SCAN RESULT RAW:", result)
+    console.log("🟣 SCAN FIELDS:", result.fields)
     const camelFields = {}
     for (const [key, val] of Object.entries(result.fields || {})) {
+      console.log("FIELD KEY:", key, "VALUE:", val)
       if (val !== null && val !== undefined) camelFields[toCamel(key)] = val
     }
     setNewItem(prev => ({
@@ -143,6 +147,8 @@ export default function CollectionPage({ navigate, collection }) {
   const handleScan = async (imageFile) => {
     setBarcodeScanning(true)
     setBarcodeError('')
+    console.log("🟡 COL TYPE:", col.type)
+    console.log("🟡 DJANGO TYPE:", FRONTEND_TO_DJANGO_TYPE[col.type])
     try {
       const djangoType = FRONTEND_TO_DJANGO_TYPE[col.type]
       const result = await scanBarcode(imageFile, djangoType)

@@ -199,7 +199,7 @@ def add_get_collections(request):
             name=data["name"],
             description=data.get("description",""),
             category=data.get("category", ""),
-            collection_type=data.get("collection_type", "video_games"),
+            collection_type=data.get("collection_type", ""),
             is_public=data.get("is_public", False)
             )
         
@@ -234,7 +234,8 @@ def add_item(request):
         if not purchase_date: # Handle empty string or None
             purchase_date = None
 
-        # Create the base item (shared fields)
+        print(data.get("barcode"))
+
         item = Item.objects.create(
             collection=collection,
             name=data["name"],
@@ -620,14 +621,19 @@ def musicbrainz_api(barcode):
 
     release = releases[0]
 
-    artist = None
-    if release.get("artist-credit"):
-        artist = release["artist-credit"][0].get("name")
+    title = release.get("title")
 
-    return {
-        "title": release.get("title"),
-        "artist": artist,
-    }
+    artist = None
+    artist_info = release.get("artist-credit", [])
+    if artist_info:
+        artist_list = artist_info[0]
+        artist = artist_list.get("name")
+      
+    return ({
+        "title" : title,
+        "artist" : artist,
+    })
+
 
 def discogs_api(barcode):
     url = f"https://api.discogs.com/database/search?barcode={barcode}"
@@ -662,16 +668,17 @@ def match_keyword(value, keywords):
 
     return "Other"
 
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def barcode(request):
-    image_file = request.FILES.get("image")
+    image_file = request.FILES.get("image") #gets the barcode image from HoardHero
 
     if not image_file:
         return JsonResponse({"error": "nothing uploaded"}, status=400)
     
     try:
-        image = Image.open(image_file)
+        image = Image.open(image_file) #gets the data from the image file uploaded to hoard hero
     except UnidentifiedImageError:
         return JsonResponse({"error": "Invalid file type"}, status=400)
 
@@ -681,32 +688,45 @@ def barcode(request):
         return JsonResponse({"error": "no barcode found"}, status=400)
 
     item_type = request.POST.get("item_type")
+    print("🟢 BACKEND RECEIVED ITEM TYPE:", item_type)
     if not item_type or item_type not in BARCODE_TYPES:
         return JsonResponse({"error": "Invalid or missing item_type"}, status=400)
         
 
-    barcode = decoded_code[0].data.decode("utf-8")
+    barcode = decoded_code[0].data.decode("utf-8") #decodes barcode
     
-    if item_type == "music":
+    if item_type == "music": #needs specific music api
         musicbrainz = musicbrainz_api(barcode)
         discogs = discogs_api(barcode)
 
         if not musicbrainz:
             return JsonResponse({"error": "Music not found"}, status=404)
 
-        genre = discogs.get("genre", []) if discogs else []
-        format = discogs.get("format", []) if discogs else []
+        title = musicbrainz.get("title")
+        artist = musicbrainz.get("artist")
+        
+        genre_list = discogs.get("genre", []) if discogs else []
+        format_list = discogs.get("format", []) if discogs else []
+
+        genre = match_keyword(
+            genre_list[0] if genre_list else "",
+            GENRES
+        )
+
+        format_ = match_keyword(
+            format_list[0] if format_list else "",
+            FORMATS
+        )
 
         result = {
-            "name": musicbrainz["title"],
+            "name": title,
             "barcode": barcode,
 
             "fields": {
-                "album_title": musicbrainz["title"],
-                "artist": musicbrainz["artist"],
-
-                "genre": match_keyword(genre[0] if genre else "", GENRES),
-                "format": match_keyword(format[0] if format else "", FORMATS),
+                "album_title": title,
+                "artist": artist,
+                "genre": genre,
+                "format": format_,
             }
         }
 
@@ -782,7 +802,7 @@ def add_wishlist_item(request):
             user=user,
             name=data["name"],
             description=data.get("description", ""),
-            collection_type=data.get("collection_type", "video_games"),
+            collection_type=data.get("collection_type", ""),
             notes=data.get("notes", ""),
             price_target=data.get("price_target") or 0,
             link=data.get("link", ""),

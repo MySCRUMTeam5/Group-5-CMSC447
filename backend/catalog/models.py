@@ -29,7 +29,7 @@ class Collection(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     category = models.CharField(max_length=100, blank=True, default="")
-    collection_type = models.CharField(max_length=50, choices=COLLECTION_TYPES, default="video_games")
+    collection_type = models.CharField(max_length=50, choices=COLLECTION_TYPES, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_public = models.BooleanField(default=False)
