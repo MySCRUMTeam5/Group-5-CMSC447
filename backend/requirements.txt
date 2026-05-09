@@ -4,3 +4,4 @@ django-cors-headers
 Pillow
 requests
 pyzbar
+python-dotenv
