@@ -17,6 +17,7 @@ router.register(r'duplicates', DuplicateFlagViewSet)
 
 urlpatterns = [
     path("items/update/<int:collection_id>/<int:item_id>/", views.edit_existing_item, name="edit_existing_item"),
+    path("wishlist/add/", views.add_item_to_wishlist, name="add_item_to_wishlist"),
     path("wishlist/items/", views.add_item_to_wishlist, name="add_item_to_wishlist"),
     path("wishlist/delete/<int:item_id>/", views.delete_wishlist_item, name="delete_wishlist_item"), 
     path("collections/delete/<int:collection_id>/", views.delete_collection, name="delete_collection"),
