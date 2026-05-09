@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('catalog', '0003_wishlistitem'),
+        ('catalog', '0005_wishlistitem'),
     ]
 
     operations = [
