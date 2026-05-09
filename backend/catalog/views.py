@@ -572,6 +572,9 @@ def barcode(request):
 
     return JsonResponse(result)
 
+# @csrf_exempt
+# def move_wishlist_item_to_collection():
+    
 
 @csrf_exempt
 @require_http_methods(["GET"])
