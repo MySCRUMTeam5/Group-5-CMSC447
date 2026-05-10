@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import OverallValueChart from '../components/OverallValueChart'
 import { COLLECTION_TYPES } from '../config/collectionConfig'
+import { useUser } from '@clerk/clerk-react'
 import { getCollections, createCollection, deleteCollection, getItems } from '../api/hoardheroAPI'
 import './HomePage.css'
 
@@ -35,6 +36,7 @@ const FRONTEND_TO_DJANGO_TYPE = {
 }
 
 export default function HomePage({ navigate }) {
+  const { user, isLoaded } = useUser()
   const [collections, setCollections] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [newCol, setNewCol] = useState({ name: '', type: 'games' })
@@ -122,11 +124,12 @@ export default function HomePage({ navigate }) {
   
   // ── Create a new collection ───────────────────────────────────────────
   const handleAddCollection = async () => {
+    if(!isLoaded || !user) return
     if (!newCol.name.trim()) return
     try {
       setAddError('')
       const djangoType = FRONTEND_TO_DJANGO_TYPE[newCol.type] ?? newCol.type
-      const data = await createCollection({ name: newCol.name, type: djangoType })
+      const data = await createCollection({ name: newCol.name, type: djangoType, clerk_user_id: user.id })
       // Use the type the server echoed back so local state always matches DB
       const savedServerType = data.type || data.collection_type || djangoType
       const savedFrontendType = DJANGO_TO_FRONTEND_TYPE[savedServerType] ?? newCol.type

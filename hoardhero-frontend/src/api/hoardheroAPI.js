@@ -65,8 +65,8 @@ export async function getCollections() {
 }
 
 // POST create a new collection
-export async function createCollection({ name, type }) {
-  return request('POST', '/api/collections/', { name, type })
+export async function createCollection({ name, type, clerk_user_id }) {
+  return request('POST', '/api/collections/', { name, type, clerk_user_id })
 }
 
 // DELETE remove a collection

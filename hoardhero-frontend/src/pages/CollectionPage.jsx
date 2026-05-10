@@ -140,7 +140,8 @@ export default function CollectionPage({ navigate, collection }) {
       ...(result.description  ? { description:  result.description }  : {}),
       ...(result.barcode      ? { barcode:      result.barcode }      : {}),
       ...(result.image        ? { imageUrl:     result.image }        : {}),
-      ...(result.market_price ? { currentValue: result.market_price } : {}),
+      ...(result.current_value ? { currentValue: result.current_value } : {}),
+      ...(result.platform ?     { platform:     result.platform } : {}),
       ...camelFields,
     }))
     closeBarcodeModal()
@@ -186,6 +187,7 @@ export default function CollectionPage({ navigate, collection }) {
       setLoading(true)
       setPageError('')
       const data = await getItems(col.id, col.type)
+      console.log("RAW ITEM FROM BACKEND: ", data)
       // Map Django Item fields to frontend shape
       const mapped = (Array.isArray(data) ? data : []).map(item => {
         // Normalize condition from snake_case to Title Case (e.g. "near_mint" -> "Near Mint")

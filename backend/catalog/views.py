@@ -60,14 +60,24 @@ COLLECTION_TYPE_CONFIG = {
 }
 
 def get_or_create_user(clerk_user_id, email=None):
-    user = None
+    print("DEBUG clerk_user_id:", repr(clerk_user_id))
+    print("DEBUG email:", repr(email))
+
+    username = email or clerk_user_id
+
+    print("DEBUG resolved username:", repr(username))
+
+    if not username:
+        raise ValueError("username resolved to empty/None")
 
     try:
         user = User.objects.get(clerk_user_id=clerk_user_id)
-    
     except User.DoesNotExist:
-        user = User.objects.create(clerk_user_id=clerk_user_id, username=email or clerk_user_id)
-    
+        user = User.objects.create(
+            clerk_user_id=clerk_user_id,
+            username=username
+        )
+
     return user
 
 @csrf_exempt
@@ -189,7 +199,10 @@ def add_get_collections(request):
     elif request.method == "POST":
         data = json.loads(request.body)
 
-        clerk_user_id = request.headers.get("clerk_user_id")
+        clerk_user_id = data.get("clerk_user_id")
+
+        if not clerk_user_id:
+            return JsonResponse({"Error" : "Missing authentication (clerk id)"}, status=400)
 
         user = get_or_create_user(clerk_user_id)
 
@@ -906,24 +919,15 @@ def barcode(request):
 
     upc_image = item.get("images", [None])[0]
 
-    # Fetch image and market price from eBay; fall back gracefully if unavailable
-    ebay_image = None
-    market_price = None
-    try:
-        ebay = Ebay_API()
-        ebay_data = ebay.fetch_items(item.get("title") or barcode)
-        ebay_items = ebay.parse_items(ebay_data)
-        if ebay_items:
-            ebay_image = ebay_items[0].get("image")
-            market_price = ebay_items[0].get("price")
-    except Exception:
-        pass
+    market_price = item.get("highest_recorded_price")
 
     result = {
         "name": item.get("title"),
         "description": item.get("description"),
         "barcode": barcode,
-        "fields": map_fields(item_type, filtered_item)
+        "fields": map_fields(item_type, filtered_item),
+        "image": upc_image,
+        "current_value": market_price
     }
 
     return JsonResponse(result)
