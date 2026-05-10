@@ -129,7 +129,16 @@ export default function HomePage({ navigate }) {
     try {
       setAddError('')
       const djangoType = FRONTEND_TO_DJANGO_TYPE[newCol.type] ?? newCol.type
+      console.log("🟡 NEW COLLECTION INPUT:", newCol)
+      console.log("🟡 DJANGO TYPE RESOLVED:", djangoType)
+      const payload = {
+      name: newCol.name,
+      type: djangoType,
+      }
+
+      console.log("🟡 PAYLOAD SENT TO BACKEND:", payload)
       const data = await createCollection({ name: newCol.name, type: djangoType, clerk_user_id: user.id })
+      console.log("🟢 COLLECTION CREATED RESPONSE:", data)
       // Use the type the server echoed back so local state always matches DB
       const savedServerType = data.type || data.collection_type || djangoType
       const savedFrontendType = DJANGO_TO_FRONTEND_TYPE[savedServerType] ?? newCol.type

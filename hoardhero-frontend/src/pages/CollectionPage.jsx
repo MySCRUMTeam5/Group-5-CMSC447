@@ -82,6 +82,8 @@ export default function CollectionPage({ navigate, collection }) {
   const [showBarcodeModal, setShowBarcodeModal] = useState(false)
   const [barcodeMode,      setBarcodeMode]      = useState('upload')
   const [barcodeScanning,  setBarcodeScanning]  = useState(false)
+  console.log("COL DEBUG:", col)
+  console.log("TYPE CHECK:", col?.type, BARCODE_SUPPORTED.has(col?.type))
   const [barcodeError,     setBarcodeError]     = useState('')
   const videoRef  = useRef(null)
   const streamRef = useRef(null)

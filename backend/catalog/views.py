@@ -60,12 +60,7 @@ COLLECTION_TYPE_CONFIG = {
 }
 
 def get_or_create_user(clerk_user_id, email=None):
-    print("DEBUG clerk_user_id:", repr(clerk_user_id))
-    print("DEBUG email:", repr(email))
-
     username = email or clerk_user_id
-
-    print("DEBUG resolved username:", repr(username))
 
     if not username:
         raise ValueError("username resolved to empty/None")
@@ -214,7 +209,7 @@ def add_get_collections(request):
             name=data["name"],
             description=data.get("description",""),
             category=data.get("category", ""),
-            collection_type=data.get("collection_type", ""),
+            collection_type=data.get("type"),
             is_public=data.get("is_public", False)
             )
         
@@ -576,120 +571,134 @@ def map_fields(item_type, item):
         clean_title = None
         platform = None
 
-        print("ITEM TYPE: ", item_type)
-        print("TITLE", title)
-        print("LOWER TITLE: ", title_lower)
         if "nintendo switch 2" in title_lower:
             platform = "Nintendo Switch 2"
-            # idx = title_lower.find("nintendo switch 2")
-            # clean_title = title[:idx + len("nintendo switch 2")]
+            idx = title_lower.find("nintendo switch 2")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
 
         elif "nintendo switch" in title_lower:
             platform = "Nintendo Switch"
-            # idx = title_lower.find("nintendo switch")
-            # clean_title = title[:idx + len("nintendo switch")]
+            idx = title_lower.find("nintendo switch")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
 
-        # elif "ps5" in title_lower or "ps 5" in title_lower or "playstation 5" in title_lower or "play station 5" in title_lower:
-        #     platform = "PS5"
-        #     matches = ["ps5", "PS5", "playstation 5", "play station 5"]
+        elif "ps5" in title_lower or "ps 5" in title_lower or "playstation 5" in title_lower or "play station 5" in title_lower:
+            platform = "PS5"
+            matches = ["ps5", "PS5", "playstation 5", "play station 5", "PlayStation 5", "PlayStation"]
 
-        #     for match in matches:
-        #         idx = title_lower.find(match)
-        #         clean_title = title[:idx + len(match)]
-        #         break
+            for match in matches:
+                idx = title_lower.find(match)
+                clean_title = title[:idx].strip()
+                clean_title = re.sub(r"[-(/]", "", clean_title)
+                break
             
         
-        # elif "ps4" in title_lower or "ps 4" in title_lower or "playstation 4" in title_lower or "play station 4" in title_lower:
-        #     platform = "PS4"
-        #     matches = ["ps4", "PS4", "playstation 4", "play station 4"]
+        elif "ps4" in title_lower or "ps 4" in title_lower or "playstation 4" in title_lower or "play station 4" in title_lower:
+            platform = "PS4"
+            matches = ["ps4", "PS4", "playstation 4", "play station 4", "PlayStation 4", "PlayStation"]
 
-        #     for match in matches:
-        #         idx = title_lower.find(match)
-        #         clean_title = title[:idx + len(match)]
-        #         break
+            for match in matches:
+                idx = title_lower.find(match)
+                clean_title = title[:idx].strip()
+                clean_title = re.sub(r"[-(/]", "", clean_title)
+                break
         
-        # elif "ps3" in title_lower or "ps 3" in title_lower or "playstation 3" in title_lower or "play station 3" in title_lower:
-        #     platform = "PS3"
-        #     matches = ["ps3", "PS3", "playstation 3", "play station 3"]
+        elif "ps3" in title_lower or "ps 3" in title_lower or "playstation 3" in title_lower or "play station 3" in title_lower:
+            platform = "PS3"
+            matches = ["ps3", "PS3", "playstation 3", "play station 3", "PlayStation 3", "PlayStation"]
 
-        #     for match in matches:
-        #         idx = title_lower.find(match)
-        #         clean_title = title[:idx + len(match)]
-        #         break
+            for match in matches:
+                idx = title_lower.find(match)
+                clean_title = title[:idx].strip()
+                clean_title = re.sub(r"[-(/]", "", clean_title)
+                break
         
-        # elif "xbox series x" in title_lower:
-        #     platform = "Xbox Series X"
-        #     idx = title_lower.find("xbox series x")
-        #     clean_title = title[:idx + len("xbox series x")]
+        elif "xbox series x" in title_lower:
+            platform = "Xbox Series X"
+            idx = title_lower.find("xbox series x")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
-        # elif "xbox one" in title_lower:
-        #     platform = "Xbox One"
-        #     idx = title_lower.find("xbox one")
-        #     clean_title = title[:idx + len("xbox one")]
+        elif "xbox one" in title_lower:
+            platform = "Xbox One"
+            idx = title_lower.find("xbox one")
+            clean_title = title[:idx].strip()  
+            clean_title = re.sub(r"[-(/]", "", clean_title)      
         
-        # elif "xbox 360" in title_lower:
-        #     platform = "Xbox 360"
-        #     idx = title_lower.find("xbox 360")
-        #     clean_title = title[:idx + len("xbox 360")]
+        elif "xbox 360" in title_lower:
+            platform = "Xbox 360"
+            idx = title_lower.find("xbox 360")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
-        # elif "nintendo 64" in title_lower:
-        #     platform = "Nintendo 64"
-        #     idx = title_lower.find("nintendo 64")
-        #     clean_title = title[:idx + len("nintendo 64")]
+        elif "nintendo 64" in title_lower:
+            platform = "Nintendo 64"
+            idx = title_lower.find("nintendo 64")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
-        # elif "game boy advance" in title_lower or "gameboy advance" in title_lower:
-        #     platform = "GameBoy Advance"
-        #     matches = ["game boy advance", "gameboy advance"]
+        elif "game boy advance" in title_lower or "gameboy advance" in title_lower:
+            platform = "GameBoy Advance"
+            matches = ["game boy advance", "gameboy advance"]
 
-        #     for match in matches:
-        #         idx = title_lower.find(match)
-        #         clean_title = title[:idx + len(match)]
-        #         break
+            for match in matches:
+                idx = title_lower.find(match)
+                clean_title = title[:idx].strip()
+                clean_title = re.sub(r"[-(/]", "", clean_title)
+                break
         
-        # elif "game boy" in title_lower or "gameboy" in title_lower:
-        #     platform = "GameBoy"
-        #     matches = ["game boy", "gameboy"]
+        elif "game boy" in title_lower or "gameboy" in title_lower:
+            platform = "GameBoy"
+            matches = ["game boy", "gameboy"]
 
-        #     for match in matches:
-        #         idx = title_lower.find(match)
-        #         clean_title = title[:idx + len(match)]
-        #         break
+            for match in matches:
+                idx = title_lower.find(match)
+                clean_title = title[:idx].strip()
+                clean_title = re.sub(r"[-(/]", "", clean_title)
+                break
         
-        # elif "nintendo ds" in title_lower:
-        #     platform = "Nintendo DS"
-        #     idx = title_lower.find("nintendo ds")
-        #     clean_title = title[:idx + len("nintendo ds")]
+        elif "nintendo ds" in title_lower:
+            platform = "Nintendo DS"
+            idx = title_lower.find("nintendo ds")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
-        # elif "ninentdo 3ds" in title_lower:
-        #     platform = "Nintendo 3DS"
-        #     idx = title_lower.find("nintendo 3ds")
-        #     clean_title = title[:idx + len("nintendo 3ds")]
+        elif "ninentdo 3ds" in title_lower:
+            platform = "Nintendo 3DS"
+            idx = title_lower.find("nintendo 3ds")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
-        # elif "wii u" in title_lower:
-        #     platform = "Wii U"
-        #     idx = title_lower.find("wii u")
-        #     clean_title = title[:idx + len("wii u")]
+        elif "wii u" in title_lower:
+            platform = "Wii U"
+            idx = title_lower.find("wii u")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
 
-        # elif "wii" in title_lower:
-        #     platform = "Wii"
-        #     idx = title_lower.find("wii")
-        #     clean_title = title[:idx + len("wii")]
+        elif "wii" in title_lower:
+            platform = "Wii"
+            idx = title_lower.find("wii")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
-        # elif "sega" in title_lower:
-        #     platform = "Sega Genesis"
-        #     idx = title_lower.find("sega")
-        #     clean_title = title[:idx + len("sega")]
+        elif "sega" in title_lower:
+            platform = "Sega Genesis"
+            idx = title_lower.find("sega")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
-        # elif "atari" in title_lower:
-        #     platform = "Atari 2600"
-        #     idx = title_lower.find("atari")
-        #     clean_title = title[:idx + len("atari")]
+        elif "atari" in title_lower:
+            platform = "Atari 2600"
+            idx = title_lower.find("atari")
+            clean_title = title[:idx].strip()
+            clean_title = re.sub(r"[-(/]", "", clean_title)
         
         else:
              platform = "Other"
 
         return {
-            # "title" : clean_title if clean_title else title,
+            "title" : clean_title if clean_title else title,
             "platform": platform,
             "genre": None,
             "completeness": None,
@@ -925,7 +934,7 @@ def barcode(request):
         "name": item.get("title"),
         "description": item.get("description"),
         "barcode": barcode,
-        "fields": map_fields(item_type, filtered_item),
+        "fields": map_fields(item_type, item),
         "image": upc_image,
         "current_value": market_price
     }
