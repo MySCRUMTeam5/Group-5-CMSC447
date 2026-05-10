@@ -554,8 +554,126 @@ def map_fields(item_type, item):
         }
 
     elif item_type == "video_games":
+        title = item.get("title", "")
+        title_lower = title.lower()
+        clean_title = None
+        platform = None
+
+        print("ITEM TYPE: ", item_type)
+        print("TITLE", title)
+        print("LOWER TITLE: ", title_lower)
+        if "nintendo switch 2" in title_lower:
+            platform = "Nintendo Switch 2"
+            # idx = title_lower.find("nintendo switch 2")
+            # clean_title = title[:idx + len("nintendo switch 2")]
+
+        elif "nintendo switch" in title_lower:
+            platform = "Nintendo Switch"
+            # idx = title_lower.find("nintendo switch")
+            # clean_title = title[:idx + len("nintendo switch")]
+
+        # elif "ps5" in title_lower or "ps 5" in title_lower or "playstation 5" in title_lower or "play station 5" in title_lower:
+        #     platform = "PS5"
+        #     matches = ["ps5", "PS5", "playstation 5", "play station 5"]
+
+        #     for match in matches:
+        #         idx = title_lower.find(match)
+        #         clean_title = title[:idx + len(match)]
+        #         break
+            
+        
+        # elif "ps4" in title_lower or "ps 4" in title_lower or "playstation 4" in title_lower or "play station 4" in title_lower:
+        #     platform = "PS4"
+        #     matches = ["ps4", "PS4", "playstation 4", "play station 4"]
+
+        #     for match in matches:
+        #         idx = title_lower.find(match)
+        #         clean_title = title[:idx + len(match)]
+        #         break
+        
+        # elif "ps3" in title_lower or "ps 3" in title_lower or "playstation 3" in title_lower or "play station 3" in title_lower:
+        #     platform = "PS3"
+        #     matches = ["ps3", "PS3", "playstation 3", "play station 3"]
+
+        #     for match in matches:
+        #         idx = title_lower.find(match)
+        #         clean_title = title[:idx + len(match)]
+        #         break
+        
+        # elif "xbox series x" in title_lower:
+        #     platform = "Xbox Series X"
+        #     idx = title_lower.find("xbox series x")
+        #     clean_title = title[:idx + len("xbox series x")]
+        
+        # elif "xbox one" in title_lower:
+        #     platform = "Xbox One"
+        #     idx = title_lower.find("xbox one")
+        #     clean_title = title[:idx + len("xbox one")]
+        
+        # elif "xbox 360" in title_lower:
+        #     platform = "Xbox 360"
+        #     idx = title_lower.find("xbox 360")
+        #     clean_title = title[:idx + len("xbox 360")]
+        
+        # elif "nintendo 64" in title_lower:
+        #     platform = "Nintendo 64"
+        #     idx = title_lower.find("nintendo 64")
+        #     clean_title = title[:idx + len("nintendo 64")]
+        
+        # elif "game boy advance" in title_lower or "gameboy advance" in title_lower:
+        #     platform = "GameBoy Advance"
+        #     matches = ["game boy advance", "gameboy advance"]
+
+        #     for match in matches:
+        #         idx = title_lower.find(match)
+        #         clean_title = title[:idx + len(match)]
+        #         break
+        
+        # elif "game boy" in title_lower or "gameboy" in title_lower:
+        #     platform = "GameBoy"
+        #     matches = ["game boy", "gameboy"]
+
+        #     for match in matches:
+        #         idx = title_lower.find(match)
+        #         clean_title = title[:idx + len(match)]
+        #         break
+        
+        # elif "nintendo ds" in title_lower:
+        #     platform = "Nintendo DS"
+        #     idx = title_lower.find("nintendo ds")
+        #     clean_title = title[:idx + len("nintendo ds")]
+        
+        # elif "ninentdo 3ds" in title_lower:
+        #     platform = "Nintendo 3DS"
+        #     idx = title_lower.find("nintendo 3ds")
+        #     clean_title = title[:idx + len("nintendo 3ds")]
+        
+        # elif "wii u" in title_lower:
+        #     platform = "Wii U"
+        #     idx = title_lower.find("wii u")
+        #     clean_title = title[:idx + len("wii u")]
+
+        # elif "wii" in title_lower:
+        #     platform = "Wii"
+        #     idx = title_lower.find("wii")
+        #     clean_title = title[:idx + len("wii")]
+        
+        # elif "sega" in title_lower:
+        #     platform = "Sega Genesis"
+        #     idx = title_lower.find("sega")
+        #     clean_title = title[:idx + len("sega")]
+        
+        # elif "atari" in title_lower:
+        #     platform = "Atari 2600"
+        #     idx = title_lower.find("atari")
+        #     clean_title = title[:idx + len("atari")]
+        
+        else:
+             platform = "Other"
+
         return {
-            "platform": None,
+            # "title" : clean_title if clean_title else title,
+            "platform": platform,
             "genre": None,
             "completeness": None,
             "play_status": None,
