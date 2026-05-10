@@ -10,6 +10,7 @@ from rest_framework import viewsets
 from pyzbar.pyzbar import decode
 from PIL import Image, UnidentifiedImageError
 from .ebay_api import Ebay_API
+from .ebay_api import Ebay_API
 from .models import (
     Collection, Item, CollectionRating, DuplicateFlag,
     VideoGameItem, TradingCardItem, ComicItem, FunkoPopItem,
@@ -245,6 +246,7 @@ def add_item(request):
             condition=data.get("condition", "good"),
             quantity=data.get("quantity", 1),
             barcode=data.get("barcode", ""),
+            image_url=data.get("image_url", ""),
             purchase_price=data.get("purchase_price") or 0,
             current_value=data.get("current_value") or 0,
             purchase_date=purchase_date,
@@ -278,6 +280,7 @@ def add_item(request):
                 "condition": item.condition,
                 "quantity": item.quantity,
                 "barcode": item.barcode,
+                "image_url": item.image_url,
                 "purchase_price": str(item.purchase_price),
                 "current_value": str(item.current_value),
                 "purchase_date": str(item.purchase_date) if item.purchase_date else None,
@@ -315,6 +318,7 @@ def get_items(request, collection_id):
                 "condition": item.condition,
                 "quantity": item.quantity,
                 "barcode": item.barcode,
+                "image_url": item.image_url,
                 "purchase_price": str(item.purchase_price),
                 "current_value": str(item.current_value),
                 "purchase_date": str(item.purchase_date) if item.purchase_date else None,
@@ -898,7 +902,22 @@ def barcode(request):
 
     fields = COLLECTION_TYPE_CONFIG[item_type]["fields"]
 
-    filtered_item = {field: item.get(field) for field in fields}    
+    filtered_item = {field: item.get(field) for field in fields}
+
+    upc_image = item.get("images", [None])[0]
+
+    # Fetch image and market price from eBay; fall back gracefully if unavailable
+    ebay_image = None
+    market_price = None
+    try:
+        ebay = Ebay_API()
+        ebay_data = ebay.fetch_items(item.get("title") or barcode)
+        ebay_items = ebay.parse_items(ebay_data)
+        if ebay_items:
+            ebay_image = ebay_items[0].get("image")
+            market_price = ebay_items[0].get("price")
+    except Exception:
+        pass
 
     result = {
         "name": item.get("title"),

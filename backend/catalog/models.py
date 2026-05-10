@@ -90,6 +90,7 @@ class Item(models.Model):
     condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.GOOD)
     quantity = models.PositiveIntegerField(default=1)
     image = models.ImageField(upload_to="item_images/", blank=True, null=True)
+    image_url = models.URLField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     barcode = models.CharField(max_length=100, blank=True, default="", db_index=True)

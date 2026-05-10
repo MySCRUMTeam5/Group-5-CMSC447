@@ -118,7 +118,7 @@ export default function CollectionPage({ navigate, collection }) {
   const startWebcam = async () => {
     setBarcodeError('')
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
     } catch {
@@ -136,9 +136,11 @@ export default function CollectionPage({ navigate, collection }) {
     }
     setNewItem(prev => ({
       ...prev,
-      ...(result.name        ? { title:       result.name }        : {}),
-      ...(result.description ? { description: result.description } : {}),
-      ...(result.barcode     ? { barcode:     result.barcode }     : {}),
+      ...(result.name         ? { title:        result.name }         : {}),
+      ...(result.description  ? { description:  result.description }  : {}),
+      ...(result.barcode      ? { barcode:      result.barcode }      : {}),
+      ...(result.image        ? { imageUrl:     result.image }        : {}),
+      ...(result.market_price ? { currentValue: result.market_price } : {}),
       ...camelFields,
     }))
     closeBarcodeModal()
@@ -209,6 +211,7 @@ export default function CollectionPage({ navigate, collection }) {
           purchasePrice: parseFloat(item.purchase_price) || 0,
           currentValue:  parseFloat(item.current_value)  || 0,
           dateAdded:     item.created_at?.slice(0, 10) || '',
+          imageUrl:      item.image_url || '',
         }
       })
       setItems(mapped)
@@ -741,6 +744,45 @@ export default function CollectionPage({ navigate, collection }) {
               </div>
             </div>
             {formError && <div className="form-error">{formError}</div>}
+
+            {/* Image preview + URL input */}
+            <div className="item-image-section">
+              <div className="item-image-preview">
+                {newItem.imageUrl ? (
+                  <img
+                    src={newItem.imageUrl}
+                    alt="Item"
+                    onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
+                  />
+                ) : null}
+                <div className="item-image-placeholder" style={{ display: newItem.imageUrl ? 'none' : 'flex' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                  <span>No image</span>
+                </div>
+              </div>
+              <div className="item-image-url-wrap">
+                <label className="form-label">Image URL</label>
+                <input
+                  type="url"
+                  placeholder="https://…"
+                  value={newItem.imageUrl || ''}
+                  onChange={e => setNewItem(p => ({ ...p, imageUrl: e.target.value }))}
+                />
+                {newItem.imageUrl && (
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                    onClick={() => setNewItem(p => ({ ...p, imageUrl: '' }))}
+                  >
+                    Clear image
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="form-grid">
               {config.formFields.map(field => (
                 <div key={field.key} className={`form-group ${field.span === 2 ? 'form-span-2' : ''}`}>
