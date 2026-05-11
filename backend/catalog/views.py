@@ -878,8 +878,6 @@ def discogs_api(barcode):
     
     if market_value is None:
         market_value = market_data.get("median", {}).get("value")
-
-    print("MARKET VALUE: ", market_value)
     
     return {
         "genre": item.get("genre", []),
