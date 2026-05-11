@@ -711,40 +711,55 @@ def map_fields(item_type, item):
     elif item_type == "lego_sets":
         series_type = item.get("brand").lower()
         title = item.get("title", "")
-        clean_title = title.replace("lego", "").replace("LEGO", "")
+        title_lower = title.lower()
+
+        clean_title = title_lower.replace("lego", "")
         series = None
 
         if "star wars" in series_type or "star wars" in title_lower:
-            series = "Star Wars"
+            series_type = "Star Wars"
         
         elif "technic" in series_type or "technic" in title_lower:
-            series = "Technic"
+            series_type = "Technic"
 
         elif "city" in series_type or "city" in title_lower:
-            series = "City"
+            series_type = "City"
 
         elif "creator" in series_type or "creator" in title_lower:
-            series = "Creator"
+            series_type = "Creator"
         
         elif "harry potter" in series_type or "harry potter" in title_lower:
-            series = "Creator"
+            series_type = "Creator"
         
         elif "marvel" in series_type or "marvel" in title_lower:
-            series = "Creator"
+            series_type = "Creator"
 
         elif "architecture" in series_type or "creator" in title_lower:
-            series = "Creator"
+            series_type = "Creator"
 
         elif "icons" in series_type or "icons" in title_lower:
-            series = "Creator"
+            series_type = "Creator"
 
         else:
             series_type = "Other"
 
+        set_number = None
+        if item.get("model"):
+            set_number = item.get("model")
+            if len(set_number) > 6:
+                set_number = None
+        else:
+            match_set_number = re.search(r"\b\d{4,6}\b", title_lower)
+            if match_set_number:
+                set_number = match_set_number.group(0)
+        
+        if set_number:
+            clean_title = clean_title.replace(set_number, "").strip()
+
         return {
-            "title": clean_title,
+            "title": clean_title.title(),
             "series": series_type,
-            "set_number": item.get("model"),
+            "set_number": set_number,
             "piece_count": None,
             "completeness": None,
         }
