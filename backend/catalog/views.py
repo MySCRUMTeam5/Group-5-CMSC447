@@ -867,13 +867,25 @@ def discogs_api(barcode):
 
     images = release_data.get("images", [])
     image_url = images[0]["uri"] if images else None
-    print("IMAGE URL: ", image_url)
-    print("FLAG")
 
+    
+    market_url = f"https://api.discogs.com/marketplace/stats/{release_id}"
+    r3 = requests.get(market_url, headers=headers, timeout=10)
+    market_data = r3.json()
+    market_value = None
+    if market_data.get("num_for_sale", 0) > 0:
+        market_value = market_data.get("lowest_price", {}).get("value")
+    
+    if market_value is None:
+        market_value = market_data.get("median", {}).get("value")
+
+    print("MARKET VALUE: ", market_value)
+    
     return {
         "genre": item.get("genre", []),
         "format": item.get("format", []),
         "image": image_url,
+        "market_value": market_value
     }
 
 def match_keyword(value, keywords):
@@ -929,7 +941,7 @@ def barcode(request):
         genre_list = discogs.get("genre", []) if discogs else []
         format_list = discogs.get("format", []) if discogs else []
         image = discogs.get("image")
-        print("DISCOGS IMAGE FROM BARCODE: ", image)
+        market_value = discogs.get("market_value")
 
         genre = match_keyword(
             genre_list[0] if genre_list else "",
@@ -945,6 +957,7 @@ def barcode(request):
             "name": title,
             "barcode": barcode,
             "image": image,
+            "current_value": market_value,
             "fields": {
                 "album_title": title,
                 "artist": artist,
