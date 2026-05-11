@@ -706,8 +706,43 @@ def map_fields(item_type, item):
         }
 
     elif item_type == "lego_sets":
+        series_type = item.get("brand").lower()
+        title = item.get("title", "")
+        title_lower = title.lower()
+        clean_title = title.removeprefix("LEGO").strip()
+        series = None
+
+        if "star wars" in series_type or "star wars" in title_lower:
+            series = "Star Wars"
+        
+        elif "technic" in series_type or "technic" in title_lower:
+            series = "Technic"
+
+        elif "city" in series_type or "city" in title_lower:
+            series = "City"
+
+        elif "creator" in series_type or "creator" in title_lower:
+            series = "Creator"
+        
+        elif "harry potter" in series_type or "harry potter" in title_lower:
+            series = "Creator"
+        
+        elif "marvel" in series_type or "marvel" in title_lower:
+            series = "Creator"
+
+        elif "architecture" in series_type or "creator" in title_lower:
+            series = "Creator"
+
+        elif "icons" in series_type or "icons" in title_lower:
+            series = "Creator"
+
+        else:
+            series_type = "Other"
+
+
         return {
-            "series": item.get("brand"),
+            "title": clean_title,
+            "series": series_type,
             "set_number": item.get("model"),
             "piece_count": None,
             "completeness": None,
@@ -821,9 +856,24 @@ def discogs_api(barcode):
 
     item = results[0]
 
+    release_id = item.get("id")
+
+    if not release_id:
+        return None
+    
+    release_url = f"https://api.discogs.com/releases/{release_id}"
+    r2 = requests.get(release_url, headers=headers, timeout=10)
+    release_data = r2.json()
+
+    images = release_data.get("images", [])
+    image_url = images[0]["uri"] if images else None
+    print("IMAGE URL: ", image_url)
+    print("FLAG")
+
     return {
         "genre": item.get("genre", []),
         "format": item.get("format", []),
+        "image": image_url,
     }
 
 def match_keyword(value, keywords):
@@ -859,6 +909,7 @@ def barcode(request):
 
     item_type = request.POST.get("item_type")
     print("🟢 BACKEND RECEIVED ITEM TYPE:", item_type)
+
     if not item_type or item_type not in BARCODE_TYPES:
         return JsonResponse({"error": "Invalid or missing item_type"}, status=400)
         
@@ -874,9 +925,11 @@ def barcode(request):
 
         title = musicbrainz.get("title")
         artist = musicbrainz.get("artist")
-        
+      
         genre_list = discogs.get("genre", []) if discogs else []
         format_list = discogs.get("format", []) if discogs else []
+        image = discogs.get("image")
+        print("DISCOGS IMAGE FROM BARCODE: ", image)
 
         genre = match_keyword(
             genre_list[0] if genre_list else "",
@@ -887,11 +940,11 @@ def barcode(request):
             format_list[0] if format_list else "",
             FORMATS
         )
-
+      
         result = {
             "name": title,
             "barcode": barcode,
-
+            "image": image,
             "fields": {
                 "album_title": title,
                 "artist": artist,

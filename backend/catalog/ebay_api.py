@@ -11,7 +11,7 @@ class Ebay_API(object): #sets up class wrapper for ebay api calls
     def __init__(self):
         self.api_key = API_KEY
         self.api_id = API_ID
-        self.base_url = "https://api.ebay.com"
+        self.base_url = "https://api.sandbox.ebay.com"
         self.token = None
 
     
@@ -46,10 +46,27 @@ class Ebay_API(object): #sets up class wrapper for ebay api calls
 
         response = requests.get(url, headers=headers, params={"q": query})
 
+        print("🟡 EBAY STATUS:", response.status_code)
+        print("🟡 EBAY RAW TEXT:", response.text[:1000])
+        
+        if "errors" in data:
+            error = data["errors"][0]
+            if error.get("domain") == "OAuth":
+                print("Token expired — refreshing...")
+
+                self.get_ebay_token()
+
+                headers["Authorization"] = f"Bearer {self.token}"
+                response = requests.get(url, headers=headers, params={"q": query})
+
+                return response.json()
+
         return response.json()
         
     
     def parse_items(self, data):
+        print("🟡 FULL EBAY RESPONSE SAMPLE:", data.get("itemSummaries", [])[:1])
+
         items = data.get("itemSummaries", [])
 
         return [
