@@ -741,7 +741,6 @@ def map_fields(item_type, item):
         else:
             series_type = "Other"
 
-
         return {
             "title": clean_title,
             "series": series_type,
@@ -785,25 +784,25 @@ def map_fields(item_type, item):
         elif "marvel" in title_lower:
             series_type = "Marvel"
             clean_title = clean_title[:clean_title.find("marvel")]
-            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = re.sub(r"[-(/!]", "", clean_title)
             clean_title = " ".join(clean_title.split())
         
         elif "dc" in title_lower:
             series_type = "DC"
             clean_title = clean_title[:clean_title.find("dc")]
-            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = re.sub(r"[-(/!]", "", clean_title)
             clean_title = " ".join(clean_title.split())
         
         elif "disney" in title_lower:
             series_type = "Disney"
             clean_title = clean_title[:clean_title.find("disney")]
-            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = re.sub(r"[-(/!]", "", clean_title)
             clean_title = " ".join(clean_title.split())
         
         elif "star wars" in title_lower:
             series_type = "Star Wars"
             clean_title = clean_title[:clean_title.find("star wars")]
-            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = re.sub(r"[-(/!]", "", clean_title)
             clean_title = " ".join(clean_title.split())
         
         elif "anime" in title_lower or "animation" in title_lower:
@@ -828,10 +827,42 @@ def map_fields(item_type, item):
         }
 
     elif item_type in ["comics", "books"]:
+        title = item.get("title")
+        title_lower = title.lower()
+        clean_title = title_lower
+        publisher = None
+
+        if "marvel" in title_lower:
+            publisher = "Marvel"            
+
+        elif "dc" in title_lower:
+            publisher = "DC" 
+       
+        elif "image" in title_lower:
+            publisher = "Image"
+
+        elif "dark horse" in title_lower:
+            publisher = "Dark Horse"
+
+        elif "idw" in title_lower:
+            publisher = "IDW"
+\
+        elif "boom" in title_lower:
+            publisher = "Boom! Studios"
+
+        else:
+            publisher = "Other"    
+
+        find_issue = re.search(r"#(\d+)", clean_title)
+        issue_number = None
+        if find_issue:
+            issue_number = find_issue.group(1)
+
         return {
-            "publisher": item.get("publisher"),
-            "issue_title": item.get("title"),
-            "issue_number": None,
+            "title": clean_title.title(),
+            "publisher": publisher,
+            "issue_title": clean_title.title(),
+            "issue_number": issue_number,
             "grade": None,
             "read_status": None,
         }
