@@ -127,7 +127,7 @@ def edit_existing_item(request, item_id, collection_id):
 @require_http_methods(["POST", "GET"])
 def add_item_to_wishlist(request):
     print("🔥 HIT ADD ITEM ENDPOINT")
-    
+
     if request.method == "POST":
         data = json.loads(request.body)
 
@@ -248,8 +248,6 @@ def add_item(request):
         purchase_date = data.get("purchase_date")
         if not purchase_date: # Handle empty string or None
             purchase_date = None
-
-        print(data.get("barcode"))
 
         item = Item.objects.create(
             collection=collection,
@@ -713,8 +711,7 @@ def map_fields(item_type, item):
     elif item_type == "lego_sets":
         series_type = item.get("brand").lower()
         title = item.get("title", "")
-        title_lower = title.lower()
-        clean_title = title.removeprefix("LEGO").strip()
+        clean_title = title.replace("lego", "").replace("LEGO", "")
         series = None
 
         if "star wars" in series_type or "star wars" in title_lower:
@@ -754,8 +751,77 @@ def map_fields(item_type, item):
         }
 
     elif item_type == "funko_pops":
+        title = item.get("title", "")
+        title_lower = title.lower()
+        series_type = None
+        clean_title = title_lower.replace("funko","").replace("pop","")
+
+        if "tv" in title_lower:
+            series_type = "TV"
+            clean_title = clean_title[:clean_title.find("tv")]
+            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+
+        elif "movie" in title_lower or "movies" in title_lower:
+            series_type = "Movies"
+            if "movie" in title_lower:
+                clean_title = clean_title[:clean_title.find("movie")]
+            elif "movies" in title_lower:
+                clean_title = clean_title[:clean_title.find("movies")]
+            
+            clean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+        
+        elif "game" in title_lower or "games" in title_lower:
+            series_type = "Games"
+            if "game" in title_lower:
+                clean_title = clean_title[:clean_title.find("game")]
+            elif "game" in title_lower:
+                clean_title = clean_title[:clean_title.find("games")]
+            
+            clean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+        
+        elif "marvel" in title_lower:
+            series_type = "Marvel"
+            clean_title = clean_title[:clean_title.find("marvel")]
+            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+        
+        elif "dc" in title_lower:
+            series_type = "DC"
+            clean_title = clean_title[:clean_title.find("dc")]
+            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+        
+        elif "disney" in title_lower:
+            series_type = "Disney"
+            clean_title = clean_title[:clean_title.find("disney")]
+            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+        
+        elif "star wars" in title_lower:
+            series_type = "Star Wars"
+            clean_title = clean_title[:clean_title.find("star wars")]
+            lean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+        
+        elif "anime" in title_lower or "animation" in title_lower:
+            series_type = "Anime"
+            if "anime" in title_lower:
+                clean_title = clean_title[:clean_title.find("anime")]
+            elif "animation" in title_lower:
+                clean_title = clean_title[:clean_title.find("animation")]
+            
+            clean_title = re.sub(r"[-(/!]", "", clean_title)
+            clean_title = " ".join(clean_title.split())
+                   
+        else:
+            series_type = "Other"
+
         return {
-            "series": item.get("brand"),
+            "title" : clean_title.title(),
+            "series": series_type,
             "box_number": item.get("model"),
             "exclusive": None,
             "completeness": None,
@@ -902,7 +968,6 @@ def match_keyword(value, keywords):
             return result
 
     return "Other"
-
 
 @csrf_exempt
 @require_http_methods(["POST"])
