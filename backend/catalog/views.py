@@ -126,10 +126,15 @@ def edit_existing_item(request, item_id, collection_id):
 @csrf_exempt
 @require_http_methods(["POST", "GET"])
 def add_item_to_wishlist(request):
+    print("🔥 HIT ADD ITEM ENDPOINT")
+    
     if request.method == "POST":
         data = json.loads(request.body)
 
-        clerk_user_id = request.headers.get("clerk_user_id")
+        clerk_user_id = data.get("clerk_user_id")
+
+        if not clerk_user_id:
+            return JsonResponse({"Error" : "Missing authentication (clerk id)"}, status=400)
 
         user = get_or_create_user(clerk_user_id)
 
@@ -1005,8 +1010,53 @@ def barcode(request):
 
     return JsonResponse(result)
 
-# @csrf_exempt
-# def move_wishlist_item_to_collection():
+@csrf_exempt
+@require_http_methods(["PATCH"])
+def move_wishlist_item_to_collection(request, item_id, collection_id):
+
+    wishlist_item = WishlistItem.objects.filter(id=item_id).first()
+
+    if not wishlist_item:
+        return JsonResponse({"Error" : "This item cannot be found"}, status=404)
+    
+    collection = Collection.objects.filter(id=collection_id).first()
+
+    if not collection_id:
+        return JsonResponse({"Error" : "Collection cannot be found"}, status=404)
+    
+    item = Item.objects.create(
+        collection=collection, 
+        title=wishlist_item.name, 
+        description=wishlist_item.description
+        )
+
+    if collection.type == "video_games":
+        VideoGameItem.objects.create(item=item)
+    
+    elif collection_type == "trading_cards":
+        TradingCardItem.objects.create(item=item)
+    
+    elif collection_type == "comics":
+        ComicItem.objects.create(item=item)
+    
+    elif collection_type == "funko_pops":
+        FunkoPopItem.objects.create(item=item)
+
+    elif collection_type == "lego_sets":
+        LegoSetItem.objects.create(item=item)
+    
+    elif collection_type == "sports_cards":
+        SportsCardItem.objects.create(item=item)
+    
+    elif collection_type == "music":
+        MusicItem.objects.create(item=item)
+    
+    elif collection_type == "movies":
+        MovieItem.objects.create(item=item)
+
+    wishlist_item.delete()
+
+    return JsonResponse({"Message" : "Wishlist item moved successfully"})
     
 
 @csrf_exempt
@@ -1023,46 +1073,6 @@ def get_wishlist(request):
         "link": item.link,
     } for item in items]
     return JsonResponse(data, safe=False)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def add_wishlist_item(request):
-    try:
-        data = json.loads(request.body)
-        if "name" not in data:
-            return JsonResponse({"error": "name is required"}, status=400)
-
-        if request.user.is_authenticated:
-            user = request.user
-        else:
-            user = User.objects.first()
-
-        item = WishlistItem.objects.create(
-            user=user,
-            name=data["name"],
-            description=data.get("description", ""),
-            collection_type=data.get("collection_type", ""),
-            notes=data.get("notes", ""),
-            price_target=data.get("price_target") or 0,
-            link=data.get("link", ""),
-        )
-
-        return JsonResponse({
-            "id": item.id,
-            "name": item.name,
-            "description": item.description,
-            "collection_type": item.collection_type,
-            "notes": item.notes,
-            "price_target": str(item.price_target),
-            "link": item.link,
-            "created_at": item.created_at.isoformat(),
-        }, status=201)
-
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
 
 
 @csrf_exempt

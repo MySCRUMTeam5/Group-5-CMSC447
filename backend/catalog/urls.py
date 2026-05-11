@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, CollectionViewSet, ItemViewSet,
     CollectionRatingViewSet, DuplicateFlagViewSet,
-    barcode, get_wishlist, add_wishlist_item, delete_wishlist_item
+    barcode, get_wishlist, add_item_to_wishlist, delete_wishlist_item
 )
 from . import views
 
@@ -33,6 +33,7 @@ urlpatterns = [
     path("items/", views.sort_filter_collection, name="sort_filter_collection"),
     path("barcode/", barcode, name="barcode"),
     path("wishlist/", get_wishlist, name="get_wishlist"),
+    path("wishlist/<int:item_id>/move/<int:collection_id>", views.move_wishlist_item_to_collection, name="move_wishlist_item_to_collection"),
     path("ebay/search/", views.ebay_search, name="ebay_search"),
     path("", include(router.urls))
 ]

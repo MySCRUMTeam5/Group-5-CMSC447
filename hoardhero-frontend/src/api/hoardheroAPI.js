@@ -187,6 +187,7 @@ export async function addWishlistItem(itemData) {
     notes: itemData.notes || '',
     price_target: itemData.priceTarget || 0,
     link: itemData.link || '',
+    clerk_user_id: itemData.clerk_user_id
   })
 }
 
