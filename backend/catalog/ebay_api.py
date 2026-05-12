@@ -46,18 +46,38 @@ class Ebay_API(object): #sets up class wrapper for ebay api calls
 
         response = requests.get(url, headers=headers, params={"q": query})
 
+        print("🟡 EBAY STATUS:", response.status_code)
+        print("🟡 EBAY RAW TEXT:", response.text[:1000])
+        
+        if "errors" in data:
+            error = data["errors"][0]
+            if error.get("domain") == "OAuth":
+                print("Token expired — refreshing...")
+
+                self.get_ebay_token()
+
+                headers["Authorization"] = f"Bearer {self.token}"
+                response = requests.get(url, headers=headers, params={"q": query})
+
+                return response.json()
+
         return response.json()
         
     
     def parse_items(self, data):
+        print("🟡 FULL EBAY RESPONSE SAMPLE:", data.get("itemSummaries", [])[:1])
+
         items = data.get("itemSummaries", [])
 
-        return [ {
-            "title" : item.get("title"),
-            "price" : item.get("price", {}).get("value"),
-            "condition" : item.get("condition")
-            "image" : item.get("image", {}).get("imageUrl"),
-            "url" : item.get("itemWebUrl")
+        return [
+        {
+            "title": item.get("title"),
+            "market_value": item.get("price", {}).get("value"),
+            "currency": item.get("price", {}).get("currency"),
+            "condition": item.get("condition"),
+            "image": item.get("image", {}).get("imageUrl"),
+            "url": item.get("itemWebUrl"),
+            "item_id": item.get("itemId"),
         }
         for item in items
-        ]
+    ]

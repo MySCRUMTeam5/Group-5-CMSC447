@@ -63,6 +63,7 @@ function buildTitleVariantMap(items) {
 }
 
 export default function CollectionPage({ navigate, collection }) {
+  console.log("🔵 COLLECTION PAGE RECEIVED:", collection)
   const col    = collection || { name: 'Collection', icon: '📦', type: 'games' }
   const config = getConfig(col.type)
 
@@ -82,6 +83,8 @@ export default function CollectionPage({ navigate, collection }) {
   const [showBarcodeModal, setShowBarcodeModal] = useState(false)
   const [barcodeMode,      setBarcodeMode]      = useState('upload')
   const [barcodeScanning,  setBarcodeScanning]  = useState(false)
+  console.log("COL DEBUG:", col)
+  console.log("TYPE CHECK:", col?.type, BARCODE_SUPPORTED.has(col?.type))
   const [barcodeError,     setBarcodeError]     = useState('')
   const videoRef  = useRef(null)
   const streamRef = useRef(null)
@@ -118,7 +121,7 @@ export default function CollectionPage({ navigate, collection }) {
   const startWebcam = async () => {
     setBarcodeError('')
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
     } catch {
@@ -127,15 +130,21 @@ export default function CollectionPage({ navigate, collection }) {
   }
 
   const handleScanResult = (result) => {
+    console.log("🟣 SCAN RESULT RAW:", result)
+    console.log("🟣 SCAN FIELDS:", result.fields)
     const camelFields = {}
     for (const [key, val] of Object.entries(result.fields || {})) {
+      console.log("FIELD KEY:", key, "VALUE:", val)
       if (val !== null && val !== undefined) camelFields[toCamel(key)] = val
     }
     setNewItem(prev => ({
       ...prev,
-      ...(result.name        ? { title:       result.name }        : {}),
-      ...(result.description ? { description: result.description } : {}),
-      ...(result.barcode     ? { barcode:     result.barcode }     : {}),
+      ...(result.name         ? { title:        result.name }         : {}),
+      ...(result.description  ? { description:  result.description }  : {}),
+      ...(result.barcode      ? { barcode:      result.barcode }      : {}),
+      ...(result.image        ? { imageUrl:     result.image }        : {}),
+      ...(result.current_value ? { currentValue: result.current_value } : {}),
+      ...(result.platform ?     { platform:     result.platform } : {}),
       ...camelFields,
     }))
     closeBarcodeModal()
@@ -144,6 +153,8 @@ export default function CollectionPage({ navigate, collection }) {
   const handleScan = async (imageFile) => {
     setBarcodeScanning(true)
     setBarcodeError('')
+    console.log("🟡 COL TYPE:", col.type)
+    console.log("🟡 DJANGO TYPE:", FRONTEND_TO_DJANGO_TYPE[col.type])
     try {
       const djangoType = FRONTEND_TO_DJANGO_TYPE[col.type]
       const result = await scanBarcode(imageFile, djangoType)
@@ -179,6 +190,7 @@ export default function CollectionPage({ navigate, collection }) {
       setLoading(true)
       setPageError('')
       const data = await getItems(col.id, col.type)
+      console.log("RAW ITEM FROM BACKEND: ", data)
       // Map Django Item fields to frontend shape
       const mapped = (Array.isArray(data) ? data : []).map(item => {
         // Normalize condition from snake_case to Title Case (e.g. "near_mint" -> "Near Mint")
@@ -204,6 +216,7 @@ export default function CollectionPage({ navigate, collection }) {
           purchasePrice: parseFloat(item.purchase_price) || 0,
           currentValue:  parseFloat(item.current_value)  || 0,
           dateAdded:     item.created_at?.slice(0, 10) || '',
+          imageUrl:      item.image_url || '',
         }
       })
       setItems(mapped)
@@ -738,6 +751,45 @@ export default function CollectionPage({ navigate, collection }) {
               </div>
             </div>
             {formError && <div className="form-error">{formError}</div>}
+
+            {/* Image preview + URL input */}
+            <div className="item-image-section">
+              <div className="item-image-preview">
+                {newItem.imageUrl ? (
+                  <img
+                    src={newItem.imageUrl}
+                    alt="Item"
+                    onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
+                  />
+                ) : null}
+                <div className="item-image-placeholder" style={{ display: newItem.imageUrl ? 'none' : 'flex' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                  <span>No image</span>
+                </div>
+              </div>
+              <div className="item-image-url-wrap">
+                <label className="form-label">Image URL</label>
+                <input
+                  type="url"
+                  placeholder="https://…"
+                  value={newItem.imageUrl || ''}
+                  onChange={e => setNewItem(p => ({ ...p, imageUrl: e.target.value }))}
+                />
+                {newItem.imageUrl && (
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                    onClick={() => setNewItem(p => ({ ...p, imageUrl: '' }))}
+                  >
+                    Clear image
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="form-grid">
               {config.formFields.map(field => (
                 <div key={field.key} className={`form-group ${field.span === 2 ? 'form-span-2' : ''}`}>

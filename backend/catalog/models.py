@@ -29,7 +29,7 @@ class Collection(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     category = models.CharField(max_length=100, blank=True, default="")
-    collection_type = models.CharField(max_length=50, choices=COLLECTION_TYPES, default="video_games")
+    collection_type = models.CharField(max_length=50, choices=COLLECTION_TYPES, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_public = models.BooleanField(default=False)
@@ -48,7 +48,7 @@ class Collection(models.Model):
 
     @property
     def total_value(self):
-        return self.items.aggregate(total=models.Sum("purchase_price"))["total"] or 0
+        return self.items.aggregate(total=models.Sum("current_value"))["total"] or 0
 
 
 class CollectionRating(models.Model):
@@ -90,6 +90,7 @@ class Item(models.Model):
     condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.GOOD)
     quantity = models.PositiveIntegerField(default=1)
     image = models.ImageField(upload_to="item_images/", blank=True, null=True)
+    image_url = models.URLField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     barcode = models.CharField(max_length=100, blank=True, default="", db_index=True)

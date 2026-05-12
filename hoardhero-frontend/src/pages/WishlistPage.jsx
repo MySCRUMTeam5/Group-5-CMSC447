@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
+import { useUser } from '@clerk/clerk-react'
 import { COLLECTION_TYPES } from '../config/collectionConfig'
 import {
   getWishlist, addWishlistItem, deleteWishlistItem,
@@ -40,6 +41,7 @@ function typeLabel(djangoType) {
 }
 
 export default function WishlistPage({ navigate }) {
+  const { user, isLoaded } = useUser()
   const [items,            setItems]            = useState([])
   const [collections,      setCollections]      = useState([])
   const [loading,          setLoading]          = useState(true)
@@ -89,6 +91,19 @@ export default function WishlistPage({ navigate }) {
 
   // ── Add wishlist item ─────────────────────────────────────────────────────
   const handleAdd = async () => {
+    console.log("HANDLE ADD CALLED")
+    if (!isLoaded) {
+      console.log("Clerk still loading")
+      console.log("isLoaded", isLoaded)
+      return
+    }
+
+    if (!user) {
+      console.log("No user available")
+      console.log("User", user)
+      return
+    }
+    console.log("FLAG")
     if (!newItem.name.trim()) { setFormError('Name is required.'); return }
     try {
       setFormError('')
@@ -99,6 +114,11 @@ export default function WishlistPage({ navigate }) {
         notes: newItem.notes,
         priceTarget: newItem.priceTarget,
         link: newItem.link,
+        clerk_user_id: user.id
+      })
+      console.log("HANDLE ADD PAYLOAD", {
+        name: newItem.name,
+        clerk_user_id: user.id
       })
       setItems(prev => [data, ...prev])
       setNewItem({ name: '', collectionType: 'games', notes: '', priceTarget: '', link: '' })
@@ -129,12 +149,15 @@ export default function WishlistPage({ navigate }) {
 
   const handleMarkBought = async () => {
     if (!boughtCollection) { setBoughtError('Please select a collection.'); return }
+    if (!isLoaded || !user) return
     setBoughtLoading(true)
     setBoughtError('')
+    console.log("boughtModal:", boughtModal)
+    console.log("boughtModal.id:", boughtModal?.id)
     try {
       await addItem(parseInt(boughtCollection), { title: boughtModal.name, description: boughtModal.description })
-      await deleteWishlistItem(boughtModal.id)
-      setItems(prev => prev.filter(i => i.id !== boughtModal.id))
+      await deleteWishlistItem(boughtModal.item_id)
+      setItems(prev => prev.filter(i => i.item_id !== boughtModal.item_id))
       setBoughtModal(null)
     } catch (err) {
       setBoughtError(err.message || 'Failed to move item to collection.')

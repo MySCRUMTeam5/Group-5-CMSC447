@@ -38,9 +38,12 @@ function App() {
         {currentPage === 'collection' && (
           <CollectionPage navigate={navigate} collection={selectedCollection} />
         )}
+
         {currentPage === 'wishlist' && (
           <WishlistPage navigate={navigate} />
         )}
+
+        {currentPage === 'profile' && <ProfilePage navigate={navigate} />}
       </SignedIn>
     </div>
   )

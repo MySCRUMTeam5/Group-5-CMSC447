@@ -65,8 +65,8 @@ export async function getCollections() {
 }
 
 // POST create a new collection
-export async function createCollection({ name, type }) {
-  return request('POST', '/api/collections/', { name, type })
+export async function createCollection({ name, type, clerk_user_id }) {
+  return request('POST', '/api/collections/', { name, type, clerk_user_id })
 }
 
 // DELETE remove a collection
@@ -94,13 +94,14 @@ export async function addItem(collectionId, itemData) {
     current_value: itemData.currentValue || 0,
     barcode: itemData.barcode || '',
     description: itemData.description || '',
+    image_url: itemData.imageUrl || '',
     quantity: 1,
   }
 
   // Pass type-specific fields (camelCase → snake_case)
   const skipKeys = new Set([
     'title', 'condition', 'purchasePrice', 'currentValue', 'barcode',
-    'description', 'id', 'dateAdded', 'created_at', 'updated_at',
+    'description', 'imageUrl', 'id', 'dateAdded', 'created_at', 'updated_at',
     'collection', 'name', 'quantity',
   ])
   for (const [key, val] of Object.entries(itemData)) {
@@ -121,11 +122,12 @@ export async function updateItem(collectionId, itemId, itemData) {
     current_value: itemData.currentValue || 0,
     barcode: itemData.barcode || '',
     description: itemData.description || '',
+    image_url: itemData.imageUrl || '',
   }
 
   const skipKeys = new Set([
     'title', 'condition', 'purchasePrice', 'currentValue', 'barcode',
-    'description', 'id', 'dateAdded', 'created_at', 'updated_at',
+    'description', 'imageUrl', 'id', 'dateAdded', 'created_at', 'updated_at',
     'collection', 'name', 'quantity',
   ])
   for (const [key, val] of Object.entries(itemData)) {
@@ -185,6 +187,7 @@ export async function addWishlistItem(itemData) {
     notes: itemData.notes || '',
     price_target: itemData.priceTarget || 0,
     link: itemData.link || '',
+    clerk_user_id: itemData.clerk_user_id
   })
 }
 

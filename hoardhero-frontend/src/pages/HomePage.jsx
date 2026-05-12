@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
+import OverallValueChart from '../components/OverallValueChart'
 import { COLLECTION_TYPES } from '../config/collectionConfig'
-import { getCollections, createCollection, deleteCollection } from '../api/hoardheroAPI'
+import { useUser } from '@clerk/clerk-react'
+import { getCollections, createCollection, deleteCollection, getItems } from '../api/hoardheroAPI'
 import './HomePage.css'
 
 // ── Single source of truth for type mapping ───────────────────────────────────
@@ -34,6 +36,7 @@ const FRONTEND_TO_DJANGO_TYPE = {
 }
 
 export default function HomePage({ navigate }) {
+  const { user, isLoaded } = useUser()
   const [collections, setCollections] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
   const [newCol, setNewCol] = useState({ name: '', type: 'games' })
@@ -42,6 +45,7 @@ export default function HomePage({ navigate }) {
   const [error, setError] = useState('')
   const [addError, setAddError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [growthData, setGrowthData] = useState([])
 
   // ── Load collections on mount ─────────────────────────────────────────
   useEffect(() => {
@@ -52,8 +56,13 @@ export default function HomePage({ navigate }) {
     try {
       setLoading(true)
       setError('')
+      console.log("🟡 FETCHING COLLECTIONS...")
       const data = await getCollections()
+      console.log("🟢 RAW COLLECTIONS RESPONSE:", data)
+      console.log("🟢 IS ARRAY:", Array.isArray(data))
+
       const mapped = (Array.isArray(data) ? data : data.results || []).map(col => {
+        console.log("🔵 MAPPING COLLECTION:", col)
         // Backend sends "type" field containing the Django value (e.g. "video_games")
         const serverType = col.type || col.collection_type
         const frontendType = DJANGO_TO_FRONTEND_TYPE[serverType] ?? serverType
@@ -67,8 +76,11 @@ export default function HomePage({ navigate }) {
           icon: type?.icon || '📦',
         }
       })
+      console.log("🟣 FINAL MAPPED COLLECTIONS:", mapped)
       setCollections(mapped)
+      await buildGrowthData(mapped)
     } catch (err) {
+      console.error("🔴 FETCH COLLECTIONS ERROR:", err)
       setError('Could not load collections. Is the Django server running?')
       console.error(err)
     } finally {
@@ -76,14 +88,57 @@ export default function HomePage({ navigate }) {
       setLoaded(true)
     }
   }
+  const buildGrowthData = async (collections) => {
+    let allItems = []
 
+    for (const col of collections) {
+      try {
+        const items = await getItems(col.id)
+        allItems = [...allItems, ...items]
+      } catch (err) {
+        console.error('Failed fetching items:', err)
+      }
+    }
+
+    // Convert + sort by date
+    const sorted = allItems
+    .map(i => ({
+      date: i.created_at?.slice(0, 10),
+      value: parseFloat(i.current_value) || 0
+    }))
+    .filter(i => i.date)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+    // Build cumulative total
+    let total = 0
+    const result = sorted.map(entry => {
+      total += entry.value
+      return {
+        date: entry.date,
+        value: total
+      }
+    })
+
+    setGrowthData(result)
+  }
+  
   // ── Create a new collection ───────────────────────────────────────────
   const handleAddCollection = async () => {
+    if(!isLoaded || !user) return
     if (!newCol.name.trim()) return
     try {
       setAddError('')
       const djangoType = FRONTEND_TO_DJANGO_TYPE[newCol.type] ?? newCol.type
-      const data = await createCollection({ name: newCol.name, type: djangoType })
+      console.log("🟡 NEW COLLECTION INPUT:", newCol)
+      console.log("🟡 DJANGO TYPE RESOLVED:", djangoType)
+      const payload = {
+      name: newCol.name,
+      type: djangoType,
+      }
+
+      console.log("🟡 PAYLOAD SENT TO BACKEND:", payload)
+      const data = await createCollection({ name: newCol.name, type: djangoType, clerk_user_id: user.id })
+      console.log("🟢 COLLECTION CREATED RESPONSE:", data)
       // Use the type the server echoed back so local state always matches DB
       const savedServerType = data.type || data.collection_type || djangoType
       const savedFrontendType = DJANGO_TO_FRONTEND_TYPE[savedServerType] ?? newCol.type
@@ -149,6 +204,10 @@ export default function HomePage({ navigate }) {
             </div>
           </div>
         </section>
+
+        {growthData.length > 0 && (
+          <OverallValueChart data={growthData} />
+        )}
 
         {/* Collections Grid */}
         <section className="collections-section">
