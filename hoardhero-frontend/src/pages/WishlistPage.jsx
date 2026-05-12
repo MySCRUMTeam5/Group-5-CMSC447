@@ -152,10 +152,12 @@ export default function WishlistPage({ navigate }) {
     if (!isLoaded || !user) return
     setBoughtLoading(true)
     setBoughtError('')
+    console.log("boughtModal:", boughtModal)
+    console.log("boughtModal.id:", boughtModal?.id)
     try {
       await addItem(parseInt(boughtCollection), { title: boughtModal.name, description: boughtModal.description })
-      await deleteWishlistItem(boughtModal.id)
-      setItems(prev => prev.filter(i => i.id !== boughtModal.id))
+      await deleteWishlistItem(boughtModal.item_id)
+      setItems(prev => prev.filter(i => i.item_id !== boughtModal.item_id))
       setBoughtModal(null)
     } catch (err) {
       setBoughtError(err.message || 'Failed to move item to collection.')

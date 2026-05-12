@@ -1124,6 +1124,7 @@ def barcode(request):
 @csrf_exempt
 @require_http_methods(["PATCH"])
 def move_wishlist_item_to_collection(request, item_id, collection_id):
+    print("FROM MOVE ITEM ID: ", item_id)
 
     wishlist_item = WishlistItem.objects.filter(id=item_id).first()
 
@@ -1165,7 +1166,7 @@ def move_wishlist_item_to_collection(request, item_id, collection_id):
     elif collection_type == "movies":
         MovieItem.objects.create(item=item)
 
-    wishlist_item.delete()
+    delete_wishlist_item(request, item_id)
 
     return JsonResponse({"Message" : "Wishlist item moved successfully"})
     
