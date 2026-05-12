@@ -48,7 +48,7 @@ class Collection(models.Model):
 
     @property
     def total_value(self):
-        return self.items.aggregate(total=models.Sum("purchase_price"))["total"] or 0
+        return self.items.aggregate(total=models.Sum("current_value"))["total"] or 0
 
 
 class CollectionRating(models.Model):
