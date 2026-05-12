@@ -294,7 +294,7 @@ def add_item(request):
             type_obj = config["model"].objects.create(item=item, **type_fields)
             type_data = {field: getattr(type_obj, field) for field in config["fields"]}
 
-	# Auto-snapshot: update today's value for this collection
+	    # Auto-snapshot: update today's value for this collection
         today = date.today()
         total = collection.items.aggregate(total=Sum("current_value"))["total"] or 0
         ValueSnapshot.objects.update_or_create(
@@ -1256,7 +1256,7 @@ def value_history(request, collection_id):
             "total_value": str(snap.total_value),
         })
 
-    if not data:
+    if not data or data[-1]["date"] != end_date.isoformat():
         current_total = collection.items.aggregate(
             total=Sum("current_value")
         )["total"] or 0
