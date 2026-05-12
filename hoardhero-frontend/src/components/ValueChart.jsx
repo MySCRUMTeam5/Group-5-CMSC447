@@ -11,7 +11,7 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
-export default function ValueChart({ collectionId }) {
+export default function ValueChart({ collectionId, refreshKey }) {
   const [data, setData] = useState([]);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export default function ValueChart({ collectionId }) {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [collectionId, days]);
+  }, [collectionId, days, refreshKey]);
 
   if (loading) return <p>Loading chart...</p>;
 

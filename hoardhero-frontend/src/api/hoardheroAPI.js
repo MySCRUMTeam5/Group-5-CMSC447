@@ -136,12 +136,12 @@ export async function updateItem(collectionId, itemId, itemData) {
     }
   }
 
-  return request('PATCH', `/api/items/${itemId}/`, body)
+  return request('PATCH', `/api/items/update/${collectionId}/${itemId}/`, body)
 }
 
 // DELETE remove an item
 export async function deleteItem(collectionId, itemId) {
-  return request('DELETE', `/api/items/${itemId}/`)
+  return request('DELETE', `/api/items/delete/${collectionId}/${itemId}/`)
 }
 
 // ── Barcode ───────────────────────────────────────────────────────────────

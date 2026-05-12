@@ -117,8 +117,20 @@ def edit_existing_item(request, item_id, collection_id):
         
         if "usage_status" in data:
             item.usage_status = data["usage_status"]
+
+        if "current_value" in data:
+            item.current_value = data["current_value"]
         
         item.save()
+
+        # update today's value for this collection
+        today = date.today()
+        total = item.collection.items.aggregate(total=Sum("current_value"))["total"] or 0
+        ValueSnapshot.objects.update_or_create(
+            collection=item.collection,
+            date=today,
+            defaults={"total_value": total}
+        )
 
         return JsonResponse({"Message" : "Item updated successfully"})
     
@@ -282,6 +294,15 @@ def add_item(request):
             type_obj = config["model"].objects.create(item=item, **type_fields)
             type_data = {field: getattr(type_obj, field) for field in config["fields"]}
 
+	# Auto-snapshot: update today's value for this collection
+        today = date.today()
+        total = collection.items.aggregate(total=Sum("current_value"))["total"] or 0
+        ValueSnapshot.objects.update_or_create(
+            collection=collection,
+            date=today,
+            defaults={"total_value": total}
+        )
+
         return JsonResponse({
             "message": "Item added successfully",
             "item": {
@@ -381,7 +402,16 @@ def delete_item(request, collection_id, item_id):
     try:
         item = Item.objects.get(id=item_id, collection_id=collection_id)
         item_name = item.name
+        collection = item.collection
         item.delete()
+        
+        today = date.today()
+        total = collection.items.aggregate(total=Sum("current_value"))["total"] or 0
+        ValueSnapshot.objects.update_or_create(
+            collection=collection,
+            date=today,
+            defaults={"total_value": total}
+        )
         return JsonResponse(
             {"message": f"Item: '{item_name}' deleted successfully!"},
             status=200
@@ -391,7 +421,6 @@ def delete_item(request, collection_id, item_id):
             {"error": "Item not deleted. Item not found in this collection!"},
             status=404
         )
-
 
 @require_http_methods(["GET"])
 def get_collection_item_count(request, collection_id):

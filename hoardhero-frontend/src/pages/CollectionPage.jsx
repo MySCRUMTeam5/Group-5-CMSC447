@@ -79,6 +79,7 @@ export default function CollectionPage({ navigate, collection }) {
   const [expandedTitles, setExpandedTitles] = useState({})
   const [loading,        setLoading]        = useState(true)
   const [pageError,      setPageError]      = useState('')
+  const [chartRefreshKey, setChartRefreshKey] = useState(0)
 
   const [showBarcodeModal, setShowBarcodeModal] = useState(false)
   const [barcodeMode,      setBarcodeMode]      = useState('upload')
@@ -338,6 +339,7 @@ export default function CollectionPage({ navigate, collection }) {
       setItems(prev => [created, ...prev])
       setNewItem({})
       setShowAddModal(false)
+      setChartRefreshKey(prev => prev + 1)
     } catch (err) {
       setFormError(err.message || 'Failed to add item. Please try again.')
       console.error(err)
@@ -355,6 +357,7 @@ export default function CollectionPage({ navigate, collection }) {
       setNewItem({})
       setEditItem(null)
       setShowAddModal(false)
+      setChartRefreshKey(prev => prev + 1)
     } catch (err) {
       setFormError(err.message || 'Failed to update item. Please try again.')
       console.error(err)
@@ -367,6 +370,7 @@ export default function CollectionPage({ navigate, collection }) {
     try {
       await deleteItem(col.id, id)
       setItems(prev => prev.filter(i => i.id !== id))
+      setChartRefreshKey(prev => prev + 1)
     } catch (err) {
       // 404 means already deleted — still remove from UI
       if (err.message?.includes('404') || err.message?.includes('Not found')) {
@@ -390,6 +394,7 @@ export default function CollectionPage({ navigate, collection }) {
       console.error('Delete all failed:', err)
     } finally {
       setItems(prev => prev.filter(i => !idSet.has(i.id)))
+      setChartRefreshKey(prev => prev + 1)
       setConfirmDelete(null)
     }
   }
@@ -554,7 +559,7 @@ export default function CollectionPage({ navigate, collection }) {
           <p className="results-count">Showing {displayItems.length} of {items.length} items</p>
         )}
 	
-	<ValueChart collectionId={col.id} />
+	<ValueChart collectionId={col.id} refreshKey={chartRefreshKey} />
 
         {/* API error state */}
         {pageError && (
