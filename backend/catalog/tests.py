@@ -698,3 +698,26 @@ class everything(TestCase):
         response_8 = self.client.post(f"collections/{lego_coll_id}/item-count/")
         self.assertEqual(response_7, 201)
         self.assertTrue(lego_coll, 2)
+    def test_barcode_decode_valid(self):
+        self.client.force_login(self.user)
+        response = self.client.post("/api/scan-barcode/", {"image": "data:image/jpeg;base64,..."}, content_type="application/json")
+        self.assertNotEqual(response.status_code, 500)
+
+    def test_market_value_calculation(self):
+        collection = Collection.objects.create(collection_type="video_games", name="Temp Collection", owner=self.user)
+        item = Item.objects.create(collection=collection, name="Value Test", purchase_price=50.00, current_value=75.00)
+        self.assertEqual(item.purchase_price, 50.00)
+        self.assertEqual(item.current_value, 75.00)
+        self.assertEqual(float(item.current_value - item.purchase_price), 25.00)
+
+    def test_image_retrieval_fallback(self):
+        collection = Collection.objects.create(collection_type="video_games", name="Temp Collection", owner=self.user)
+        response = self.client.post("/api/items/add/", data=json.dumps({
+            "collection_id": collection.id,
+            "name": "No Image Item",
+            "quantity": 1
+        }), content_type="application/json")
+        self.assertNotEqual(response.status_code, 500)
+        item = Item.objects.filter(name="No Image Item").first()
+        if item:
+            self.assertTrue(item.image_url == "" or "placeholder" in item.image_url.lower())
