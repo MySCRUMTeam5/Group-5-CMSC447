@@ -597,62 +597,62 @@ class everything(TestCase):
         #Post Pokemon Collection and check it posted
         post_pokemon_coll_resp = self.client.post("/api/collections/", {"collection_type" : "video_games", "name" : "Pokemon Test"}, content_type="application/json")
         pok_collection_id = post_pokemon_coll_resp.json()["id"]
-        self.assertEqual(post_pokemon_coll_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_pokemon_coll_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Collection.objects.filter(name="Pokemon").exists()) #Ensures it actually exists in backend
         
         #Post Items in the Pokemon Collection
         post_fire_red_resp = self.client.post("/api/items/add/", {"collection_id" : pok_collection_id, "name" : "Fire Red Test"}, content_type="application/json")
-        self.assertEqual(post_fire_red_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_fire_red_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Item.objects.filter(name="Fire Red").exists()) #Ensures it actually exists in backend
         fire_red_id = post_fire_red_resp.json()["id"]
         post_silver_resp = self.client.post("/api/items/add/", {"collection_id" : pok_collection_id, "name" : "Silver Test"}, content_type="application/json")
-        self.assertEqual(post_silver_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_silver_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Collection.objects.filter(name="Silver").exists()) #Ensures it actually exists in backend
         post_crystal_resp = self.client.post("/api/items/add/", {"collection_id" : pok_collection_id, "name" : "Crystal Test"}, content_type="application/json")
-        self.assertEqual(post_crystal_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_crystal_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Collection.objects.filter(name="Crystal").exists()) #Ensures it actually exists in backend
 
 
         #Post LotR MtG Collection
         post_lotr_coll_resp = self.client.post("/api/collections/", {"collection_type" : "trading_cards", "name" : "Lord of the Rings Test"}, content_type="application/json")
-        self.assertEqual(post_lotr_coll_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_lotr_coll_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Item.objects.filter(name="Lord of the Rings").exists()) #Ensures it actually exists in backend
         lotr_collection_id = post_lotr_coll_resp.json()["id"]
 
         #Post Items in the LotR MtG Collection
         post_sam_resp = self.client.post("/api/items/add/", {"collection_id" : lotr_collection_id, "name" : "Sam, Loyal Attendant Test"}, content_type="application/json")
-        self.assertEqual(post_sam_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_sam_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Item.objects.filter(name="Sam, Loyal Attendant").exists()) #Ensures it actually exists in backend
         post_frodo_resp = self.client.post("/api/items/add/", {"collection_id" : lotr_collection_id, "name" : "Frodo, Adventurous Hobbit Test"}, content_type="application/json")     
-        self.assertEqual(post_frodo_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_frodo_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Item.objects.filter(name="Frodo, Adventurous Hobbit").exists()) #Ensures it actually exists in backend 
 
         #Post Star Wars Lego Collection
         post_swlego_coll_resp = self.client.post("/api/collections/", {"collection_type" : "lego_sets", "name" : "Star Wars Legos Test"}, content_type="application/json")
         swlego_collection_id = post_swlego_coll_resp.json()["id"]
-        self.assertEqual(post_swlego_coll_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_swlego_coll_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Item.objects.filter(name="Star Wars").exists())
         lego_coll_id = post_swlego_coll_resp.json()["id"]
 
         #Post Items in Star Wars Lego Collection
         post_star_dest_coll_resp = self.client.post("/api/items/add/", {"collection_id" : swlego_collection_id, "name" : "Star Destroyer Test"}, content_type="application/json")
-        self.assertEqual(post_star_dest_coll_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_star_dest_coll_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Item.objects.filter(name="Star Destroyer").exists())
         post_millfal_coll_resp = self.client.post("/api/items/add/", {"collection_id" : swlego_collection_id, "name" : "Millenium Falcon Test"}, content_type="application/json")
-        self.assertEqual(post_millfal_coll_resp, 201) #Gets correct status code after posting
+        self.assertEqual(post_millfal_coll_resp.status_code, 201) #Gets correct status code after posting
         self.assertTrue(Item.objects.filter(name="Millenium Falcon").exists())
 
         #Create a Duplicate
-        duplicate_frodo = Item.objects.create(collection=lotr_collection_id, name="Frodo, Adventurous Hobbit")
+        duplicate_frodo = Item.objects.create(collection_id=lotr_collection_id, name="Frodo, Adventurous Hobbit")
         duplicate_frodo_resp = self.client.post("/api/items/add", {"collection_id" : lotr_collection_id, "name" : "Frodo, Adventurous Hobbit"})
-        dup_frodo_id = duplicate_frodo_response.json()["id"]
+        dup_frodo_id = duplicate_frodo_resp.json()["id"]
 
         #Make sure it shows duplicate on front and Backend
-        self.assertEqual(duplicate_frodo_resp, 201)
-        self.assertTrue(Item.objects.filter(name="Frodo, Adventurous Hobbit").count(), 2)
+        self.assertEqual(duplicate_frodo_resp.status_code, 201)
+        self.assertEqual(Item.objects.filter(name="Frodo, Adventurous Hobbit").count(), 2)
 
         #Sort Collection A-Z
-        request_1 = self.pokemon_coll.get("/items/?sort=alpha_ascend")
+        request_1 = self.client.get("/items/?sort=alpha_ascend")
         response_1 = sort_filter_collection(request_1)
         data = json.loads(response_1.content)
         expected_order = ["Crystal", "Fire Red", "Silver"]
@@ -660,7 +660,7 @@ class everything(TestCase):
         self.assertEqual(actual_order, expected_order)
 
         #Sort Collection Z-A
-        request_2 = self.lotr_coll.get("/items/?sort=alpha_descend")
+        request_2 = self.client.get("/items/?sort=alpha_descend")
         response_2 = sort_filter_collection(request_2)
         data = json.loads(response_2.content)
         expected_order = ["Sam, Loyal Attendant", "Frodo, Adventurous Hobbit", "Frodo, Adventurous Hobbit"]
@@ -668,7 +668,7 @@ class everything(TestCase):
         self.assertEqual(actual_order, expected_order)      
 
         #Filter Collection by letter
-        request_3 = self.lego_coll.get("/items/?filter=name&value=f")
+        request_3 = self.client.get("/items/?filter=name&value=f")
         response_3 = sort_filter_collection(request_3)
         data = json.loads(response_3.content)
 
@@ -677,27 +677,27 @@ class everything(TestCase):
 
         #Delete an Item
         response_4 = self.client.delete(f"items/delete/{pok_collection_id}/{fire_red_id}/")
-        self.assertEqual(response_4, 201) 
+        self.assertEqual(response_4.status_code, 201) 
         self.assertFalse(Item.objects.filter(name="Fire Red").exists())
 
         #Delete a Duplicate Item
         response_5 = self.client.delete(f"items/delete/{lotr_collection_id}/{dup_frodo_id}/")
-        self.assertEqual(response_5, 201) 
-        self.assertTrue(Item.objects.filter(name="Frodo, Adventurous Hobbit").count(), 1)
+        self.assertEqual(response_5.status_code, 201) 
+        self.assertEqual(Item.objects.filter(name="Frodo, Adventurous Hobbit").count(), 1)
 
         #Delete a Collection
         response_6 = self.client.delete(f"collections/delete/{lotr_collection_id}/")
-        self.assertEqual(respone_6, 201)
+        self.assertEqual(response_6.status_code, 201)
         self.assertFalse(Collection.objects.filter(collection_id=lotr_collection_id).exists())
 
         #Get collection count
         response_7 = self.client.post(f"collections/{pok_collection_id}/item-count/")
-        self.assertEqual(response_7, 201)
-        self.assertTrue(pokemon_coll.count(), 2)
+        self.assertEqual(response_7.status_code, 201)
+        self.assertEqual(Item.objects.filter(collection_id=pok_collection_id).count(), 2)
 
         response_8 = self.client.post(f"collections/{lego_coll_id}/item-count/")
-        self.assertEqual(response_7, 201)
-        self.assertTrue(lego_coll, 2)
+        self.assertEqual(response_8.status_code, 201)
+        self.assertEqual(Item.objects.filter(collection_id=lego_coll_id).count(), 2)
     def test_barcode_decode_valid(self):
         self.client.force_login(self.user)
         response = self.client.post("/api/scan-barcode/", {"image": "data:image/jpeg;base64,..."}, content_type="application/json")
